@@ -26,6 +26,15 @@ export type {
 } from "./stages";
 export { STAGE_ORDER } from "./stages";
 export type { ErrorResponse } from "./errors";
+export type { HealthResponse } from "./health";
+export type {
+  IntakeSummary,
+  JobListItem,
+  PdfVerdict,
+  PublicConfig,
+  SheetSummary,
+  StoredFile,
+} from "./intake";
 export type {
   ConnectionReportRow,
   TagMatchStatus,

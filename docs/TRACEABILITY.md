@@ -18,8 +18,15 @@ Product rows use the same IDs as `FEATURES.md`.
 | CON-08 Job and version | `backend/app/schemas/job.py`, `frontend/src/types/job.ts` | `test_version_zero_is_original_and_later_versions_need_a_parent` |
 | CON-09 Export metadata | `backend/app/schemas/export.py`, `frontend/src/types/export.ts` | `test_export_metadata_and_answer_key_json` |
 | CON-10 Answer key | `backend/app/schemas/answer_key.py`, `frontend/src/types/answerKey.ts` | `test_export_metadata_and_answer_key_json` |
-| T1-01 | TBD | TBD |
-| T1-02 | TBD | TBD |
+| API-01 Health check | `backend/app/api/health.py`, `backend/app/database.py` | `backend/tests/test_api.py` (`test_health_returns_ok_and_a_request_id`, `test_broken_database_url_reports_failed_without_crashing`) |
+| API-02 Error body and request id | `backend/app/api/errors.py`, `backend/app/api/middleware.py` | `test_unknown_route_uses_the_error_schema`, `test_validation_error_uses_the_error_schema`, `test_unexpected_error_uses_the_error_schema` |
+| API-03 Jobs and versions tables | `backend/app/models/tables.py`, `backend/app/database.py` | `test_database_tables_are_created_at_startup`, `test_version_zero_is_never_overwritten` |
+| SCRIPT-01 PDF vector or scanned verdict | `backend/app/services/pdf_inspect.py`, `scripts/pdf_verdict.py`, `scripts/inspect_pdf.py` | `backend/tests/test_inspect.py` (`test_vector_pdf_is_vector`, `test_embedded_image_pdf_is_scanned`) |
+| SCRIPT-02 Excel tag problems | `scripts/excel_checks.py`, `scripts/inspect_excel.py` | `test_excel_reports_empty_and_duplicate_tags` |
+| SCRIPT-03 Answer-key template | `data/answer_keys/TEMPLATE.json` | `test_answer_key_template_matches_the_contract` |
+| API-04 Project upload and intake | `backend/app/api/jobs.py`, `backend/app/services/uploads.py` | `backend/tests/test_jobs.py` (`test_valid_upload_stores_safe_names_and_intake`, `test_corrupt_pdf_leaves_no_job`, `test_unknown_job_uses_the_standard_error`) |
+| T1-01 | `backend/app/api/jobs.py`, `frontend/src/pages/NewProjectPage.tsx` | `backend/tests/test_jobs.py` |
+| T1-02 | `backend/app/services/pdf_inspect.py` | `test_vector_pdf_is_vector`, `test_embedded_image_pdf_is_scanned`, `test_scanned_pdf_records_a_warning` |
 | T1-03 | TBD | TBD |
 | T1-04 | TBD | TBD |
 | T1-05 | TBD | TBD |

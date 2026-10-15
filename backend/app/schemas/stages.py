@@ -42,6 +42,7 @@ class StageRecord(BaseModel):
     ended_at: datetime | None = None
     duration_ms: int | None = Field(default=None, ge=0)
     warnings: list[str] = Field(default_factory=list)
+    error: str | None = None
 
     @model_validator(mode="after")
     def end_is_not_before_start(self) -> "StageRecord":

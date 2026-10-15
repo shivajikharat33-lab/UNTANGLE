@@ -14,6 +14,7 @@ from app.schemas.answer_key import (
 from app.schemas.confidence import Confidence, ConfidenceLevel
 from app.schemas.errors import ErrorResponse
 from app.schemas.export import ExportFormat, ExportMetadata
+from app.schemas.health import HealthResponse
 from app.schemas.graph import (
     BBox,
     CrossingMode,
@@ -57,6 +58,7 @@ __all__ = [
     "ExportMetadata",
     "Group",
     "GroupType",
+    "HealthResponse",
     "Job",
     "LineType",
     "Node",

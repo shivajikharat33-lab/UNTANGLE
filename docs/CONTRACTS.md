@@ -98,6 +98,7 @@ Each `StageRecord` has:
 | `started_at`, `ended_at` | timestamp or `null`. End cannot be before start |
 | `duration_ms` | integer milliseconds, or `null` |
 | `warnings` | list of strings. Warnings are kept |
+| `error` | a plain-English failure, or `null` when the stage has not failed |
 
 A `ProcessingRun` is `{ "stages": [ ... ] }`. The same stage name cannot appear twice.
 
@@ -112,7 +113,9 @@ A `ProcessingRun` is `{ "stages": [ ... ] }`. The same stage name cannot appear 
 }
 ```
 
-`details` may be `null`. `error_code` and `request_id` cannot be empty. This is the only error body the API will return.
+`details` may be `null`. `error_code` and `request_id` cannot be empty. This is the only error body the API returns. Unknown routes use `NOT_FOUND` (404) and the message "No route matches this request." A missing project uses the same code with the message "No project exists with that id." Invalid payloads use `VALIDATION_ERROR` (422) and put the field errors in `details.errors`. Unexpected failures use `INTERNAL_ERROR` (500). Every response, including a successful one, sends that same id in the `X-Request-ID` header.
+
+Upload failures use the same body. The codes are `MISSING_FILE`, `WRONG_FILE_TYPE`, `FILE_EMPTY`, `FILE_TOO_LARGE` (413), and `FILE_UNREADABLE`. `details.field` names `pid_pdf` or `io_list` when one file is the problem.
 
 ## 5. Tag Check Report row
 
@@ -151,7 +154,17 @@ JSON keys `from` and `to` are the endpoint labels (a tag or a node id, decided b
 
 ## 8. Job and version
 
-A `Job` is `{ "id", "versions" }`.
+A `Job` always has `id` and `versions`. `versions` is empty until version 0 is stored. Uploading files does not create version 0, because there is no sketch yet.
+
+The upload API also fills these fields. They have defaults, so a payload that only has `id` and `versions` still matches the model.
+
+| Field | Meaning |
+| --- | --- |
+| `name` | project name, or an empty string |
+| `status` | `uploaded` after the two files are stored |
+| `created_at` | timestamp, or `null` on a job that has not been stored |
+| `intake` | intake summary below, or `null` |
+| `stages` | the ten stage records. Intake is `done` after a real upload. The others are `pending` |
 
 A `Version`:
 
@@ -214,3 +227,45 @@ A person writes this JSON before node ids exist, so connections use tags.
 `direction` uses the same four values as an edge. `line_type` defaults to `process` when it is omitted in Python. In the TypeScript type it is still a required field on a complete object.
 
 Group `shared_upstream` and `shared_downstream` are tags in an answer key. In a `DiagramGraph` group they are node ids.
+
+## API health
+
+`GET /api/health` is not one of the drawing contracts. Its body is:
+
+| Field | Allowed values |
+| --- | --- |
+| `status` | `ok` when the process answered |
+| `version` | application version string |
+| `database` | `ok` after `SELECT 1` succeeds, otherwise `failed` |
+| `time` | UTC timestamp |
+
+`database: "failed"` still returns HTTP 200. The process is up; the database check is what failed.
+
+## API config
+
+`GET /api/config` returns `{ "max_upload_mb": 50 }` by default. The health check does not include this number. The new-project page uses it for the size check before upload.
+
+## API jobs
+
+`POST /api/jobs` is `multipart/form-data` with `pid_pdf`, `io_list`, and an optional `name`.
+
+Both files are required, non-empty, and at most `max_upload_mb`. The PDF name must end in `.pdf` and the bytes must start with `%PDF-`. The workbook name must end in `.xlsx` and the bytes must start with `PK`. The size is checked while the file is read in chunks. A file over the limit is refused before the rest of it is stored.
+
+The saved paths are `UPLOAD_DIR/<job id>/original.pdf` and `UPLOAD_DIR/<job id>/io_list.xlsx`. The user's filename is stored only as `original_name`. It is never used as a path. The files are not modified after they are written. Each file's SHA-256 is stored.
+
+Intake then opens the PDF with PyMuPDF and the workbook with openpyxl. The summary is:
+
+| Field | Meaning |
+| --- | --- |
+| `pdf`, `io_list` | `stored_name`, `original_name`, `sha256`, `byte_size` |
+| `page_count` | pages in the PDF |
+| `verdict` | `VECTOR`, `SCANNED`, or `MIXED` |
+| `verdict_reason` | why that verdict was chosen |
+| `sheets` | each sheet's `name`, `columns`, and `row_count` (the header counts as a row) |
+| `warnings` | for example, a scanned PDF, because vector extraction will not be possible |
+
+A PDF or workbook that cannot be opened is `FILE_UNREADABLE`. No job row is kept and no upload folder is left behind. Intake does not match tags and does not return text from the drawing.
+
+`GET /api/jobs` lists projects newest first: `id`, `name`, `created_at`, `status`, `pdf_verdict`, `page_count`.
+
+`GET /api/jobs/{id}` returns the full job, including `intake` and `stages`. An unknown id is a 404 `NOT_FOUND`.

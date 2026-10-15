@@ -2,14 +2,14 @@
 
 Status values: **Not started**, **In progress**, **Implemented**, **Tested**.
 
-Nothing in the product feature list is built yet. Step 1 only defined the data contracts those features will share. Contract coverage is tracked in `TRACEABILITY.md`.
+Upload and the PDF type verdict are tested. The landing page, dashboard, new-project form, and processing page are in the website. Symbol detection, tracing, the sketch, reports, and exports are not built. A screen that is not built says so. Contract coverage is tracked in `TRACEABILITY.md`.
 
 ## Tier 1
 
 | ID | Feature | Status |
 | --- | --- | --- |
-| T1-01 | Upload a customer P&ID PDF and an instrument IO list Excel file | Not started |
-| T1-02 | Detect whether a drawing is vector, scanned, or mixed | Not started |
+| T1-01 | Upload a customer P&ID PDF and an instrument IO list Excel file | Tested |
+| T1-02 | Detect whether a drawing is vector, scanned, or mixed | Tested |
 | T1-03 | Detect equipment and IO instruments and keep their tags | Not started |
 | T1-04 | Trace correct connections and flow direction | Not started |
 | T1-05 | Draw duty/standby equipment as parallel lines | Not started |

@@ -1,1 +1,1 @@
-"""HTTP routes. None are registered yet."""
+"""HTTP routes."""

@@ -32,7 +32,15 @@ export interface Version {
   change_log: ChangeLogEntry[];
 }
 
+import type { StageRecord } from "./stages";
+import type { IntakeSummary } from "./intake";
+
 export interface Job {
   id: string;
   versions: Version[];
+  name: string;
+  status: "uploaded";
+  created_at: string | null;
+  intake: IntakeSummary | null;
+  stages: StageRecord[];
 }

@@ -12,6 +12,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.graph import Direction, LineType
+from app.schemas.intake import IntakeSummary
+from app.schemas.stages import StageRecord
 from app.schemas.verification import VerificationResult
 
 VersionStatus = Literal["auto", "accepted", "edited"]
@@ -68,10 +70,19 @@ class Version(BaseModel):
 
 
 class Job(BaseModel):
-    """One customer drawing job. versions is empty until version 0 is stored."""
+    """One customer drawing job. versions is empty until version 0 is stored.
+
+    An uploaded job has no sketch yet, so versions stays empty. Intake and
+    the stage list are filled when the two source files have been stored.
+    """
 
     id: str = Field(min_length=1)
     versions: list[Version] = Field(default_factory=list)
+    name: str = ""
+    status: Literal["uploaded"] = "uploaded"
+    created_at: datetime | None = None
+    intake: IntakeSummary | None = None
+    stages: list[StageRecord] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def version_numbers_are_unique_and_zero_is_kept(self) -> "Job":

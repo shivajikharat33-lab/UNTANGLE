@@ -32,6 +32,7 @@ export interface StageRecord {
   ended_at: string | null;
   duration_ms: number | null;
   warnings: string[];
+  error: string | null;
 }
 
 export interface ProcessingRun {

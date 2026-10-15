@@ -13,7 +13,9 @@ __pycache__/
 .env
 
 # Confidential drawings and runtime uploads. Never commit these.
-data/samples/
+# The samples README is the only tracked file in that folder.
+data/samples/*
+!data/samples/README.md
 data/uploads/
 
 # Local database files created when the API is running

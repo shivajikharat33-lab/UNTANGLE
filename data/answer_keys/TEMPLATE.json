@@ -1,0 +1,31 @@
+{
+  "drawing_id": "replace-with-your-drawing-id",
+  "expected_tags": [
+    {
+      "tag": "FT-101",
+      "signal": "FT"
+    }
+  ],
+  "expected_equipment": [
+    {
+      "tag": "P-101",
+      "label": "Feed pump"
+    }
+  ],
+  "expected_connections": [
+    {
+      "from": "P-101",
+      "to": "FT-101",
+      "direction": "forward",
+      "line_type": "process"
+    }
+  ],
+  "expected_duty_standby_groups": [
+    {
+      "id": "feed-pumps",
+      "member_tags": ["P-101", "P-102"],
+      "shared_upstream": ["TK-101"],
+      "shared_downstream": ["FT-101"]
+    }
+  ]
+}

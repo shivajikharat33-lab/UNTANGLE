@@ -37,22 +37,24 @@ Each pass records the ten stages below. A stage ends as `pending`, `running`, `d
 | Path | Role |
 | --- | --- |
 | `backend/app/schemas/` | The data contracts, as Pydantic models. |
-| `backend/app/api/` | HTTP routes. Empty until the API step. |
+| `backend/app/api/` | HTTP routes. `GET /api/health` is the only route so far. |
 | `backend/app/services/` | The stage code. Empty until processing starts. |
-| `backend/app/models/` | Database tables. Empty until the API step. |
-| `backend/app/config.py` | Shared cutoffs. Confidence thresholds live here now. |
-| `backend/app/main.py` | Reserved for the FastAPI app. It is not a server yet. |
-| `backend/app/database.py` | Reserved for SQLite. It does not connect yet. |
+| `backend/app/models/` | SQLite tables `jobs` and `versions`. |
+| `backend/app/config.py` | Confidence thresholds and environment settings. |
+| `backend/app/main.py` | The FastAPI app. CORS, request ids, and error handling live here. |
+| `backend/app/database.py` | SQLite engine, table creation, and the live database check. |
 | `backend/tests/` | pytest. |
 | `frontend/src/types/` | The same contracts in TypeScript. |
 | `frontend/src/lib/` | Small shared helpers. Confidence cutoffs live here so they can be checked against the backend. |
-| `frontend/src/api/`, `components/`, `pages/` | Reserved for the React app. |
+| `frontend/src/api/`, `components/`, `pages/` | The React app. Pages that are not built yet say so. |
 | `docs/` | Contracts, the feature list, traceability, and this note. |
 | `data/samples/` | Local customer PDFs and spreadsheets. Git ignores this folder. |
 | `data/answer_keys/` | Hand-built expected results. A template comes in a later step. |
-| `data/uploads/` | Files the API will store. Git ignores this folder. |
-| `scripts/` | One-off inspection scripts. Empty for now. |
+| `data/uploads/` | Original PDFs and workbooks, one folder per project. Git ignores this folder. |
+| `scripts/` | Local PDF and Excel inspection. The PDF verdict is the same function the API uses. |
 
 ## What is deliberately not here yet
 
-There is no website, no upload route, and no PDF reader. Those are later steps. Calling `backend/app/main.py` or `init_db()` fails on purpose so it cannot look like a working server.
+The API serves `GET /api/health`, `GET /api/config`, and the job routes. A project can be created from a PDF and an xlsx file. Intake records the page count, the PDF verdict, and the Excel sheet summary, and marks that stage done. Version 0 is still not created at upload, because there is no sketch.
+
+There is still no symbol detection, tag matching, line tracing, simplified sketch, report, or export.
