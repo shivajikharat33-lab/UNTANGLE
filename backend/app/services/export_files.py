@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -21,6 +22,8 @@ from app.errors import AppError
 from app.schemas.export import ExportMetadata
 from app.schemas.graph import DiagramGraph
 from app.services.storage import PDF_NAME, job_folder
+
+logger = logging.getLogger("untangle.export")
 
 MAX_EXPORT_BYTES = 20_000_000
 CERTIFICATION_WARNING = "This file is not an engineering or safety certification."
@@ -113,10 +116,15 @@ def guard_size(payload: bytes) -> bytes:
 
 
 def cache_export(cache_dir: str, key: str, name: str, payload: bytes) -> Path:
-    path = Path(cache_dir) / "exports" / key / name
-    if not path.is_file():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(payload)
+    """Store a copy under a short name. A full hash is too long for some Windows paths."""
+    short = hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
+    path = Path(cache_dir) / "exports" / short / name
+    try:
+        if not path.is_file():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(payload)
+    except OSError as exc:
+        logger.info("export cache was not written (%s)", type(exc).__name__)
     return path
 
 

@@ -76,6 +76,8 @@ npm run dev
 
 Open http://127.0.0.1:5173 . That address matches the API CORS setting. Copy `frontend/.env.example` to `frontend/.env` if you need a different API address.
 
+Public hosting on an HTTPS address is a manual checklist in `docs/deployment.md`. These setup steps do not deploy the site.
+
 ### Tests
 
 From the `backend` folder, with the virtual environment active:

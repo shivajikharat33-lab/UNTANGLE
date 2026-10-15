@@ -9,6 +9,8 @@ import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
 import { formatWhen } from "../lib/format";
+import { uploadsHidden } from "../lib/access";
+import { useAppConfig } from "../lib/appConfig";
 import type { JobListItem, PdfVerdict } from "../types/intake";
 
 const verdictTone: Record<PdfVerdict, "neutral" | "medium" | "low"> = {
@@ -20,6 +22,7 @@ const verdictTone: Record<PdfVerdict, "neutral" | "medium" | "low"> = {
 export function DashboardPage() {
   const [jobs, setJobs] = useState<JobListItem[] | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  const demo = uploadsHidden(useAppConfig());
 
   useEffect(() => {
     const controller = new AbortController();
@@ -45,9 +48,11 @@ export function DashboardPage() {
           title="Dashboard"
           description="Each project is one P&ID and one IO workbook. Opening a project shows the intake that was actually read."
         />
-        <Link to="/app/new" className={buttonClass("primary")}>
-          New project
-        </Link>
+        {demo ? null : (
+          <Link to="/app/new" className={buttonClass("primary")}>
+            New project
+          </Link>
+        )}
       </div>
 
       {error ? (
@@ -60,12 +65,18 @@ export function DashboardPage() {
 
       {jobs && jobs.length === 0 ? (
         <EmptyState
-          title="No projects yet"
-          description="Upload a P&ID PDF and an IO workbook to create the first project."
+          title={demo ? "The synthetic project is not loaded" : "No projects yet"}
+          description={
+            demo
+              ? "This public demo should already contain one synthetic project. Refresh the page. Uploads stay off."
+              : "Upload a P&ID PDF and an IO workbook to create the first project."
+          }
           action={
-            <Link to="/app/new" className={buttonClass("primary")}>
-              New project
-            </Link>
+            demo ? undefined : (
+              <Link to="/app/new" className={buttonClass("primary")}>
+                New project
+              </Link>
+            )
           }
         />
       ) : null}

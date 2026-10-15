@@ -6,6 +6,8 @@ import { ApiError } from "../api/client";
 import { Alert } from "../components/Alert";
 import { EmptyState } from "../components/EmptyState";
 import { Spinner } from "../components/Spinner";
+import { uploadsHidden } from "../lib/access";
+import { useAppConfig } from "../lib/appConfig";
 
 type LinkRow = { id: string; from: string; to: string; direction: string; status: string; crossing_mode: string };
 
@@ -17,6 +19,7 @@ export function EditPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState("");
   const [projects, setProjects] = useState<JobListItem[] | null>(null);
+  const demo = uploadsHidden(useAppConfig());
 
   async function reload(projectId: string) {
     const draft = await getDraft(projectId);
@@ -95,16 +98,17 @@ export function EditPage() {
     <div className="space-y-4">
       <h1 className="font-display text-2xl">Connection list</h1>
       <p className="text-sm text-ink-soft">Version 0 stays unchanged. These edits are on the working copy. Passed the defined automated checks. This is not an engineering or safety certification.</p>
+      {demo ? <Alert tone="info" title="Modify is off in this public demo. Version 0 can be viewed. It is not edited." /> : null}
       {loading ? <Spinner label="Loading working copy" /> : null}
       {error ? <Alert tone="error" title={error.message} /> : null}
       {message ? <Alert tone="info" title={message} /> : null}
       {!loading && rows.length === 0 ? <EmptyState title="No links in the working copy" description="Run extraction so version 0 has connections, then choose Modify." /> : null}
       <div className="flex flex-wrap gap-2">
-        <button type="button" className="rounded-full border border-line px-3 py-1" disabled={!selected} onClick={() => void run({ op: "delete", id: selected }, "The link was marked removed. It stays in the list.")}>Delete link</button>
-        <button type="button" className="rounded-full border border-line px-3 py-1" disabled={!selected} onClick={() => void run({ op: "reverse", id: selected }, "The direction was reversed.")}>Reverse</button>
-        <button type="button" className="rounded-full border border-line px-3 py-1" onClick={() =>         void undoDraft(id).then(() => reload(id)).then(() => setMessage("Undid the last edit.")).catch((caught: unknown) => setError(caught instanceof ApiError ? caught : new ApiError("Nothing to undo.", 0, null)))}>Undo</button>
-        <button type="button" className="rounded-full border border-line px-3 py-1" onClick={() => void redoDraft(id).then(() => reload(id)).then(() => setMessage("Redid the edit.")).catch((caught: unknown) => setError(caught instanceof ApiError ? caught : new ApiError("Nothing to redo.", 0, null)))}>Redo</button>
-        <button type="button" className="rounded-full border border-ink px-3 py-1" onClick={() => void saveDraft(id, "Saved from the connection list").then(() => setMessage("Saved a new version. Version 0 was not changed."))}>Save version</button>
+        <button type="button" className="rounded-full border border-line px-3 py-1" disabled={demo || !selected} onClick={() => void run({ op: "delete", id: selected }, "The link was marked removed. It stays in the list.")}>Delete link</button>
+        <button type="button" className="rounded-full border border-line px-3 py-1" disabled={demo || !selected} onClick={() => void run({ op: "reverse", id: selected }, "The direction was reversed.")}>Reverse</button>
+        <button type="button" className="rounded-full border border-line px-3 py-1" disabled={demo} onClick={() =>         void undoDraft(id).then(() => reload(id)).then(() => setMessage("Undid the last edit.")).catch((caught: unknown) => setError(caught instanceof ApiError ? caught : new ApiError("Nothing to undo.", 0, null)))}>Undo</button>
+        <button type="button" className="rounded-full border border-line px-3 py-1" disabled={demo} onClick={() => void redoDraft(id).then(() => reload(id)).then(() => setMessage("Redid the edit.")).catch((caught: unknown) => setError(caught instanceof ApiError ? caught : new ApiError("Nothing to redo.", 0, null)))}>Redo</button>
+        <button type="button" className="rounded-full border border-ink px-3 py-1" disabled={demo} onClick={() => void saveDraft(id, "Saved from the connection list").then(() => setMessage("Saved a new version. Version 0 was not changed."))}>Save version</button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">

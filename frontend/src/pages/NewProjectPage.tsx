@@ -7,6 +7,8 @@ import { Button } from "../components/Button";
 import { FileDropZone } from "../components/FileDropZone";
 import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
+import { uploadsHidden } from "../lib/access";
+import { useAppConfig } from "../lib/appConfig";
 
 type Chosen = {
   file: File;
@@ -103,6 +105,17 @@ export function NewProjectPage() {
   }
 
   const percent = total > 0 ? Math.round((loaded / total) * 100) : 0;
+  if (uploadsHidden(useAppConfig())) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <PageHeader
+          eyebrow="Public demo"
+          title="Uploads are turned off"
+          description="This demo shows one synthetic project. Customer drawings are not accepted here. Modify is also off, so version 0 stays as it was generated."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl">

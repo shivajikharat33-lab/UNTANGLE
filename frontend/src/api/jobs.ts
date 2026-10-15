@@ -10,7 +10,7 @@ import type { CoverageMetric, LedgerPage, VerificationStatus } from "../types/co
 import type { SketchMeta } from "../types/sketch";
 import type { TagReport } from "../types/reports";
 import type { IoListResult, IoValidateRequest } from "../types/ioList";
-import { ApiError, apiBaseUrl, apiFetch, apiSend, isErrorResponse, readErrorBody } from "./client";
+import { ApiError, apiBaseUrl, apiFetch, apiSend, authHeaders, isErrorResponse, readErrorBody } from "./client";
 
 async function readJson<T>(response: Response, isExpected: (value: unknown) => value is T): Promise<T> {
   if (!response.ok) {
@@ -151,6 +151,11 @@ export function uploadJob(input: UploadInput, onProgress: (loaded: number, total
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${apiBaseUrl()}/api/jobs`);
     xhr.responseType = "json";
+    xhr.withCredentials = true;
+    const token = authHeaders().Authorization;
+    if (token) {
+      xhr.setRequestHeader("Authorization", token);
+    }
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         onProgress(event.loaded, event.total);

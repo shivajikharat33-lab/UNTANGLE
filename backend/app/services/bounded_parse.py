@@ -47,13 +47,15 @@ def _unlink(path: Path) -> None:
 def _run(kind: str, data: bytes, settings: Settings) -> dict[str, object]:
     scratch = Path(settings.upload_dir) / "_inspect"
     scratch.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(dir=scratch, suffix=".bin", delete=False)
+    suffix = ".pdf" if kind == "pdf" else ".xlsx"
+    handle = tempfile.NamedTemporaryFile(dir=scratch, suffix=suffix, delete=False)
     path = Path(handle.name)
     try:
         handle.write(data)
         handle.close()
         env = os.environ.copy()
         env["PYTHONPATH"] = str(_BACKEND_ROOT) + os.pathsep + env.get("PYTHONPATH", "")
+        env["PYTHONWARNINGS"] = "ignore"
         command = [
             sys.executable,
             "-m",
@@ -90,8 +92,13 @@ def _run(kind: str, data: bytes, settings: Settings) -> dict[str, object]:
     if completed.returncode != 0 or not completed.stdout.strip():
         logger.info("inspect child failed for %s exit=%s", kind, completed.returncode)
         raise AppError(400, "FILE_UNREADABLE", "The file could not be opened. It may be damaged.")
+    text = completed.stdout.strip()
+    start = text.find("{")
+    end = text.rfind("}")
+    if start >= 0 and end > start:
+        text = text[start : end + 1]
     try:
-        payload = json.loads(completed.stdout)
+        payload = json.loads(text)
     except json.JSONDecodeError:
         logger.info("inspect child returned unreadable output for %s", kind)
         raise AppError(400, "FILE_UNREADABLE", "The file could not be opened. It may be damaged.") from None

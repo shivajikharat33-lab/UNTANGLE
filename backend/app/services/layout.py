@@ -171,20 +171,20 @@ def _terminal_constraint(node, graph: SimplifiedGraph) -> str:
 
 def _run_elk(payload: dict) -> dict:
     script = _script_path()
-        if not script.is_file():
-            logger.info("layout script missing")
-            raise AppError(500, "LAYOUT_ENGINE_MISSING", "The elkjs layout script is not available.")
-        completed = subprocess.run(
-            ["node", str(script)],
-            input=json.dumps(payload),
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=60,
-        )
-        if completed.returncode != 0:
-            logger.info("layout engine failed")
-            raise AppError(500, "LAYOUT_ENGINE_FAILED", "ELK did not return a layout. No coordinates were invented.")
+    if not script.is_file():
+        logger.info("layout script missing")
+        raise AppError(500, "LAYOUT_ENGINE_MISSING", "The elkjs layout script is not available.")
+    completed = subprocess.run(
+        ["node", str(script)],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+    )
+    if completed.returncode != 0:
+        logger.info("layout engine failed")
+        raise AppError(500, "LAYOUT_ENGINE_FAILED", "ELK did not return a layout. No coordinates were invented.")
     return json.loads(completed.stdout)
 
 

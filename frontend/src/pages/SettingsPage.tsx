@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiBaseUrl } from "../api/client";
+import { apiBaseUrl, apiFetch } from "../api/client";
 import { getConfig } from "../api/jobs";
 import { ThemeToggle } from "../components/ThemeToggle";
 import type { PublicConfig } from "../types/intake";
@@ -8,15 +8,34 @@ import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
 import { HIGH_CONFIDENCE_MIN, MEDIUM_CONFIDENCE_MIN } from "../lib/confidence";
 import { useHealthContext } from "../lib/useHealth";
+import { uploadsHidden } from "../lib/access";
+import { useAppConfig } from "../lib/appConfig";
 
 export function SettingsPage() {
   const { state } = useHealthContext();
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
   const [loadError, setLoadError] = useState("");
+  const [transparency, setTransparency] = useState<string[]>([]);
+  const demo = uploadsHidden(useAppConfig());
 
   useEffect(() => {
     getConfig().then(setConfig).catch(() => setLoadError("The API settings could not be loaded."));
+    apiFetch("/api/transparency")
+      .then(async (response) => {
+        if (!response.ok) {
+          return;
+        }
+        const body = (await response.json()) as { libraries?: string[]; note?: string; disclaimer?: string; llm_called?: boolean };
+        const lines = [
+          ...(body.libraries ?? []).map((name) => `Library: ${name}.`),
+          body.llm_called ? "A model call is enabled." : "No model is called.",
+          body.note ?? "",
+          body.disclaimer ?? "",
+        ].filter((line) => line.length > 0);
+        setTransparency(lines);
+      })
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -68,8 +87,13 @@ export function SettingsPage() {
               <li>Few-shot suggestions: {config.fewshot_symbols_enabled ? "on" : "off"}. This is not a trained model.</li>
               <li>Dark theme control: {config.dark_theme_enabled ? "on" : "off"}.</li>
               <li>Flow marks: {config.flow_animation_enabled ? "on" : "off"}.</li>
-              <li>Batch upload: {config.batch_upload_enabled ? "on" : "off"}.</li>
-              <li>Libraries in this app: FastAPI, PyMuPDF, OpenCV, Shapely, elkjs, ReportLab. CairoSVG is installed but the Cairo DLL is not available, so print uses ReportLab.</li>
+              <li>Batch upload: {config.batch_upload_enabled ? "on" : "off"}. There is no separate batch upload route.</li>
+              <li>Public demo: {demo || config.public_demo_mode ? "on" : "off"}. Uploads and Modify stay off while it is on.</li>
+              <li>Access gate: {config.access_required ? "a shared demo code is required" : "off for this server"}.</li>
+              <li>OCR: {transparency.length > 0 ? "reported by the API below" : "pytesseract, and only when the Tesseract program is installed"}.</li>
+              {transparency.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
             </ul>
           ) : null}
           <ThemeToggle enabled={Boolean(config?.dark_theme_enabled)} mode={theme} onChange={setTheme} />

@@ -14,8 +14,10 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { HealthProvider } from "../lib/healthContext";
+import { uploadsHidden } from "../lib/access";
+import { useAppConfig } from "../lib/appConfig";
 import { HealthIndicator } from "./HealthIndicator";
+import { HealthProvider } from "../lib/healthContext";
 
 type NavItem = {
   to: string;
@@ -69,11 +71,13 @@ function NavList({ items, onNavigate }: { items: NavItem[]; onNavigate: () => vo
 function ShellFrame() {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
+  const config = useAppConfig();
+  const visibleWork = uploadsHidden(config) ? workItems.filter((item) => item.to !== "/app/new") : workItems;
 
   const sidebar = (
     <div className="flex h-full flex-col">
       <p className="px-3 pb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-nav-muted">Work</p>
-      <NavList items={workItems} onNavigate={closeMenu} />
+      <NavList items={visibleWork} onNavigate={closeMenu} />
       <p className="mt-6 px-3 pb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-nav-muted">App</p>
       <NavList items={otherItems} onNavigate={closeMenu} />
     </div>

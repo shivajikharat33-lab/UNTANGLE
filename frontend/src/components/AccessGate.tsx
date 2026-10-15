@@ -1,15 +1,10 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { apiFetch, clearAccessToken, setAccessToken } from "../api/client";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { apiSend, clearAccessToken, setAccessToken } from "../api/client";
 import { getConfig } from "../api/jobs";
 import type { PublicConfig } from "../types/intake";
 import { gateNeeded } from "../lib/access";
+import { AppConfigContext } from "../lib/appConfig";
 import { Button } from "./Button";
-
-const AppConfigContext = createContext<PublicConfig | null>(null);
-
-export function useAppConfig(): PublicConfig | null {
-  return useContext(AppConfigContext);
-}
 
 type Phase = "loading" | "open" | "locked";
 
@@ -29,7 +24,7 @@ export function AccessGate({ children }: { children: ReactNode }) {
           setPhase("open");
           return;
         }
-        const check = await apiFetch("/api/jobs", controller.signal);
+        const check = await apiSend("/api/jobs", "GET");
         setPhase(check.ok ? "open" : "locked");
       })
       .catch((caught: unknown) => {
@@ -49,17 +44,12 @@ export function AccessGate({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("untangle-locked", lock);
   }, []);
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
     setSubmitting(true);
     setError("");
     try {
-      const response = await fetch(`${(await import("../api/client")).apiBaseUrl()}/api/access`, {
-        method: "POST",
-        credentials: "include",
-        headers: { Accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
+      const response = await apiSend("/api/access", "POST", { code });
       const payload: unknown = await response.json().catch(() => null);
       const token = payload && typeof payload === "object" && "token" in payload ? String((payload as { token?: string }).token ?? "") : "";
       if (!response.ok || !token) {

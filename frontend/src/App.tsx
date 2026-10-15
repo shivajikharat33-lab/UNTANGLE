@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router";
+import { AccessGate } from "./components/AccessGate";
 import { AppShell } from "./components/AppShell";
 import { Spinner } from "./components/Spinner";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -21,7 +22,8 @@ const StageFixturePage = import.meta.env.DEV
 
 export function App() {
   return (
-    <BrowserRouter>
+    <AccessGate>
+      <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/app" element={<AppShell />}>
@@ -54,5 +56,6 @@ export function App() {
         </Route>
       </Routes>
     </BrowserRouter>
+    </AccessGate>
   );
 }

@@ -1,0 +1,43 @@
+# Free web service for the UNTANGLE API.
+# plan: free is required. If this field is omitted, Render's blueprint default
+# for a new web service is the paid plan 0.5c-512mb.
+# This file has no secret values. FRONTEND_ORIGIN is typed in the dashboard.
+# A persistent disk is not included: free web services cannot attach one.
+# See docs/deployment.md.
+
+services:
+  - type: web
+    name: untangle-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt && npm ci --prefix tools/layout
+    startCommand: uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.14.3"
+      - key: PUBLIC_DEMO_MODE
+        value: "true"
+      - key: DEMO_SEED_PROCESS
+        value: "true"
+      - key: OCR_IN_BUILD
+        value: "false"
+      - key: DATABASE_URL
+        value: sqlite:////opt/render/project/src/data/untangle.db
+      - key: UPLOAD_DIR
+        value: /opt/render/project/src/data/uploads
+      - key: CACHE_DIR
+        value: /opt/render/project/src/data/cache
+      - key: MAX_UPLOAD_MB
+        value: "50"
+      - key: CORS_ORIGINS
+        value: http://127.0.0.1:5173
+      # Typed once in the Render dashboard. Later blueprint updates leave it alone.
+      # Use the Vercel origin, for example https://your-app.vercel.app
+      # If you do not have that URL yet, use http://127.0.0.1:5173 and change it later.
+      # Do not leave it blank, and do not use *.
+      - key: FRONTEND_ORIGIN
+        sync: false
+      # Optional gate. Leave blank for the public synthetic demo. Never commit a real code.
+      - key: DEMO_ACCESS_CODE
+        sync: false
