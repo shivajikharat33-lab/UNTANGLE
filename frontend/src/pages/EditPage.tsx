@@ -16,11 +16,8 @@ export function EditPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState("");
 
-  async function reload() {
-    if (!id) {
-      return;
-    }
-    const draft = await getDraft(id);
+  async function reload(projectId: string) {
+    const draft = await getDraft(projectId);
     const connections = Array.isArray(draft.connections) ? draft.connections as LinkRow[] : [];
     setRows(connections);
   }
@@ -30,20 +27,21 @@ export function EditPage() {
       setLoading(false);
       return;
     }
-    reload()
+    reload(id)
       .then(() => setError(null))
       .catch((caught: unknown) => setError(caught instanceof ApiError ? caught : new ApiError("The working copy could not be loaded.", 0, null)))
       .finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {
+    if (!id) {
+      return;
+    }
+    const projectId = id;
     function onKey(event: KeyboardEvent) {
-      if (!id) {
-        return;
-      }
       if ((event.ctrlKey || event.metaKey) && event.key === "z") {
         event.preventDefault();
-        void undoDraft(id).then(reload).then(() => setMessage("Undid the last edit."));
+        void undoDraft(projectId).then(() => reload(projectId)).then(() => setMessage("Undid the last edit."));
       }
     }
     window.addEventListener("keydown", onKey);
@@ -57,7 +55,7 @@ export function EditPage() {
     setError(null);
     try {
       await postDraftOperation(id, body);
-      await reload();
+      await reload(id);
       setMessage(success);
     } catch (caught) {
       setError(caught instanceof ApiError ? caught : new ApiError("The edit could not be applied.", 0, null));
@@ -79,8 +77,8 @@ export function EditPage() {
       <div className="flex flex-wrap gap-2">
         <button type="button" className="rounded-full border border-line px-3 py-1" disabled={!selected} onClick={() => void run({ op: "delete", id: selected }, "The link was marked removed. It stays in the list.")}>Delete link</button>
         <button type="button" className="rounded-full border border-line px-3 py-1" disabled={!selected} onClick={() => void run({ op: "reverse", id: selected }, "The direction was reversed.")}>Reverse</button>
-        <button type="button" className="rounded-full border border-line px-3 py-1" onClick={() => void undoDraft(id).then(reload).then(() => setMessage("Undid the last edit.")).catch((caught: unknown) => setError(caught instanceof ApiError ? caught : new ApiError("Nothing to undo.", 0, null)))}>Undo</button>
-        <button type="button" className="rounded-full border border-line px-3 py-1" onClick={() => void redoDraft(id).then(reload).then(() => setMessage("Redid the edit.")).catch((caught: unknown) => setError(caught instanceof ApiError ? caught : new ApiError("Nothing to redo.", 0, null)))}>Redo</button>
+        <button type="button" className="rounded-full border border-line px-3 py-1" onClick={() =>         void undoDraft(id).then(() => reload(id)).then(() => setMessage("Undid the last edit.")).catch((caught: unknown) => setError(caught instanceof ApiError ? caught : new ApiError("Nothing to undo.", 0, null)))}>Undo</button>
+        <button type="button" className="rounded-full border border-line px-3 py-1" onClick={() => void redoDraft(id).then(() => reload(id)).then(() => setMessage("Redid the edit.")).catch((caught: unknown) => setError(caught instanceof ApiError ? caught : new ApiError("Nothing to redo.", 0, null)))}>Redo</button>
         <button type="button" className="rounded-full border border-ink px-3 py-1" onClick={() => void saveDraft(id, "Saved from the connection list").then(() => setMessage("Saved a new version. Version 0 was not changed."))}>Save version</button>
       </div>
       <div className="overflow-x-auto">
