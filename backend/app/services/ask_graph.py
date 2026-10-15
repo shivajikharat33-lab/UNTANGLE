@@ -7,6 +7,15 @@ from app.schemas.graph import DiagramGraph
 UNSUPPORTED = "That is not in the extracted graph."
 
 
+def validate_cited_ids(graph: DiagramGraph, cited_ids: list[str]) -> dict:
+    """Drop a model answer that names an id the graph does not contain."""
+    known = {node.id for node in graph.nodes} | {edge.id for edge in graph.edges} | {pattern.id for pattern in graph.patterns}
+    invalid = [item for item in cited_ids if item not in known]
+    if invalid or not cited_ids:
+        return {"answer": UNSUPPORTED, "cited_ids": [], "highlight": [], "rejected": invalid}
+    return {"answer": "Cited ids are in the graph.", "cited_ids": cited_ids, "highlight": cited_ids, "rejected": []}
+
+
 def ask_graph(graph: DiagramGraph, question: str) -> dict:
     """Answer one supported question. The graph is not changed."""
     text = " ".join(question.lower().split())

@@ -6,8 +6,9 @@ from pathlib import Path
 from app.config import level_for_score
 from app.schemas.confidence import Confidence
 from app.schemas.graph import BBox, DiagramGraph, Edge, Node
-from app.services.ask_graph import UNSUPPORTED, ask_graph
+from app.services.ask_graph import UNSUPPORTED, ask_graph, validate_cited_ids
 from app.services.graph_build import write_graph
+from app.services.fewshot import symbol_suggestions
 from app.services.job_compare import compare_jobs
 
 
@@ -40,9 +41,13 @@ def test_job_compare_and_ask_do_not_change_the_graph(tmp_path: Path) -> None:
     assert "PT-1" in answer["answer"] or answer["cited_ids"]
     refused = ask_graph(left, "what is the weather")
     assert refused["answer"] == UNSUPPORTED
+    rejected = validate_cited_ids(left, ["missing-node"])
+    assert rejected["answer"] == UNSUPPORTED
+    assert rejected["rejected"] == ["missing-node"]
     folder = tmp_path / "uploads" / "jobh1"
     folder.mkdir(parents=True)
     write_graph(str(tmp_path / "uploads"), "jobh1", left)
     digest = hashlib.sha256((folder / "graph.json").read_bytes()).hexdigest()
     ask_graph(left, "downstream of T-1")
     assert hashlib.sha256((folder / "graph.json").read_bytes()).hexdigest() == digest
+    assert symbol_suggestions(False)["available"] is False

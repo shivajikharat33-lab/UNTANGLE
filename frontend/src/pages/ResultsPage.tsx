@@ -4,6 +4,8 @@ import { acceptOriginal, getConfig, getExtraction, getGraph, getItem, getJob, ge
 import { EditBanner } from "../components/EditBanner";
 import { SimulationBanner } from "../components/SimulationBanner";
 import { ApiError, apiFetch, apiSend } from "../api/client";
+import { AskGraphBox } from "../components/AskGraphBox";
+import { FlowMarks } from "../components/FlowMarks";
 import { SanityList } from "../components/SanityList";
 import { Alert } from "../components/Alert";
 import { DrawingViewer } from "../components/DrawingViewer";
@@ -53,6 +55,10 @@ export function ResultsPage() {
   const [warnings, setWarnings] = useState<Array<{ id: string; rule: string; reason: string }>>([]);
   const [detailLevel, setDetailLevel] = useState(2);
   const [simulation, setSimulation] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [flowOn, setFlowOn] = useState(false);
+  const [flowEnabled, setFlowEnabled] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -140,7 +146,10 @@ export function ResultsPage() {
   }, [id, selected]);
 
   useEffect(() => {
-    getConfig().then((config) => setModifyEnabled(config.modify_enabled !== false)).catch(() => setModifyEnabled(true));
+    getConfig().then((config) => {
+      setModifyEnabled(config.modify_enabled !== false);
+      setFlowEnabled(Boolean(config.flow_animation_enabled));
+    }).catch(() => setModifyEnabled(true));
   }, []);
 
   useEffect(() => {
@@ -254,6 +263,31 @@ export function ResultsPage() {
         ))}
       </div>
       <SanityList warnings={warnings} />
+      <AskGraphBox
+        question={question}
+        answer={answer}
+        onQuestion={setQuestion}
+        onAsk={() => {
+          if (!id || !question.trim()) {
+            setAnswer("Type a question first.");
+            return;
+          }
+          void apiFetch(`/api/jobs/${encodeURIComponent(id)}/ask?question=${encodeURIComponent(question)}`)
+            .then(async (response) => {
+              if (!response.ok) {
+                setAnswer("The graph could not be asked.");
+                return;
+              }
+              const body = await response.json() as { answer?: string; highlight?: string[] };
+              setAnswer(body.answer || "That is not in the extracted graph.");
+              if (body.highlight && body.highlight[0]) {
+                choose(body.highlight[0]);
+              }
+            })
+            .catch(() => setAnswer("The graph could not be asked."));
+        }}
+      />
+      {flowEnabled ? <FlowMarks enabled={flowOn} onToggle={setFlowOn} /> : null}
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={simulation} onChange={(event) => setSimulation(event.target.checked)} />
         Simulation

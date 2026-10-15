@@ -1,4 +1,8 @@
+import { useEffect, useState } from "react";
 import { apiBaseUrl } from "../api/client";
+import { getConfig } from "../api/jobs";
+import { ThemeToggle } from "../components/ThemeToggle";
+import type { PublicConfig } from "../types/intake";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
@@ -7,6 +11,18 @@ import { useHealthContext } from "../lib/useHealth";
 
 export function SettingsPage() {
   const { state } = useHealthContext();
+  const [config, setConfig] = useState<PublicConfig | null>(null);
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("light");
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    getConfig().then(setConfig).catch(() => setLoadError("The API settings could not be loaded."));
+  }, []);
+
+  useEffect(() => {
+    const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+  }, [theme]);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -38,8 +54,25 @@ export function SettingsPage() {
         </Card>
         <Card title="Confidence cutoffs">
           <p className="text-sm leading-6 text-ink-soft">
-            High starts at {HIGH_CONFIDENCE_MIN}. Medium starts at {MEDIUM_CONFIDENCE_MIN}. Ask-the-graph models are off unless ASK_GRAPH_LLM_ENABLED is set. Few-shot symbol suggestions are off unless FEWSHOT_SYMBOLS_ENABLED is set. Simulation is not exported.
+            High starts at {HIGH_CONFIDENCE_MIN}. Medium starts at {MEDIUM_CONFIDENCE_MIN}. Simulation values stay in the browser and are not exported.
           </p>
+        </Card>
+        <Card title="Transparency declaration">
+          {loadError ? <p className="text-sm text-confidence-low-fg">{loadError}</p> : null}
+          {!config && !loadError ? <Spinner label="Loading flags" /> : null}
+          {config ? (
+            <ul className="space-y-1 text-sm text-ink-soft">
+              <li>API: {apiBaseUrl()}. No drawing is sent anywhere else.</li>
+              <li>Modify: {config.modify_enabled ? "on" : "off"}.</li>
+              <li>Ask-the-graph model: {config.ask_graph_llm_enabled ? "on" : "off"}. Default is off. Only graph JSON would be sent, never the PDF.</li>
+              <li>Few-shot suggestions: {config.fewshot_symbols_enabled ? "on" : "off"}. This is not a trained model.</li>
+              <li>Dark theme control: {config.dark_theme_enabled ? "on" : "off"}.</li>
+              <li>Flow marks: {config.flow_animation_enabled ? "on" : "off"}.</li>
+              <li>Batch upload: {config.batch_upload_enabled ? "on" : "off"}.</li>
+              <li>Libraries in this app: FastAPI, PyMuPDF, OpenCV, Shapely, elkjs, ReportLab. CairoSVG is installed but the Cairo DLL is not available, so print uses ReportLab.</li>
+            </ul>
+          ) : null}
+          <ThemeToggle enabled={Boolean(config?.dark_theme_enabled)} mode={theme} onChange={setTheme} />
         </Card>
       </div>
     </div>

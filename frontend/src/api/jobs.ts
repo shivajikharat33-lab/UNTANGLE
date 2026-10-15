@@ -118,7 +118,9 @@ export async function getUploadLimit(signal?: AbortSignal): Promise<PublicConfig
   return readJson(response, isPublicConfig);
 }
 
-export const getConfig = getUploadLimit;
+export async function getConfig(signal?: AbortSignal): Promise<PublicConfig> {
+  return getUploadLimit(signal);
+}
 
 export async function listJobs(signal?: AbortSignal): Promise<JobListItem[]> {
   const response = await apiFetch("/api/jobs", signal);

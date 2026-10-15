@@ -45,7 +45,15 @@ def _engine_or_error(request: Request):
 def public_config(request: Request) -> PublicConfig:
     """The upload size limit. Health stays a separate check."""
     settings = request.app.state.settings
-    return PublicConfig(max_upload_mb=settings.max_upload_mb, modify_enabled=settings.modify_enabled)
+    return PublicConfig(
+        max_upload_mb=settings.max_upload_mb,
+        modify_enabled=settings.modify_enabled,
+        ask_graph_llm_enabled=settings.ask_graph_llm_enabled,
+        fewshot_symbols_enabled=settings.fewshot_symbols_enabled,
+        dark_theme_enabled=settings.dark_theme_enabled,
+        flow_animation_enabled=settings.flow_animation_enabled,
+        batch_upload_enabled=settings.batch_upload_enabled,
+    )
 
 
 @router.post("/api/jobs")

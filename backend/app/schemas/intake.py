@@ -52,3 +52,8 @@ class PublicConfig(BaseModel):
 
     max_upload_mb: int = Field(ge=1)
     modify_enabled: bool = True
+    ask_graph_llm_enabled: bool = False
+    fewshot_symbols_enabled: bool = False
+    dark_theme_enabled: bool = False
+    flow_animation_enabled: bool = False
+    batch_upload_enabled: bool = False

@@ -16,7 +16,7 @@ from eval.run import RESULTS, run, validate_key
 
 def test_harness_writes_results_and_rejects_a_bad_key() -> None:
     body = run()
-    assert body["drawing_count"] == 1
+    assert body["drawing_count"] == 3
     assert (RESULTS / "latest.json").is_file()
     assert (RESULTS / "latest.csv").is_file()
     assert (RESULTS / "latest.md").is_file()
@@ -28,5 +28,6 @@ def test_harness_writes_results_and_rejects_a_bad_key() -> None:
     with pytest.raises(ValidationError):
         validate_key({"drawing_id": ""})
     stored = json.loads((RESULTS / "latest.json").read_text(encoding="utf-8"))
-    assert stored["drawing_count"] == 1
+    assert stored["drawing_count"] == 3
+    assert {item["category"] for item in stored["rows"]} == {"sample", "variant", "held-out"}
     _ = Path

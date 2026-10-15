@@ -1,9 +1,11 @@
-# Evaluation 2026-10-15T15:47:40.604523+00:00
+# Evaluation 2026-10-15T16:00:11.460858+00:00
 
-Drawings: 1
+Drawings: 3
 
 | drawing | category | tags | equipment | connections | verification difference |
 | --- | --- | --- | --- | --- | --- |
 | synthetic-eval | sample | 2/2 | 2/2 | 1/1 | 1 |
+| synthetic-eval-rotated | variant | n/a | n/a | n/a | n/a |
+| synthetic-eval-heldout | held-out | n/a | n/a | n/a | n/a |
 
-This table is one synthetic drawing. It is not a general accuracy or speed claim.
+This table uses synthetic drawings only. Variants are not independent customer drawings. Unmeasured metrics are n/a. This is not a general accuracy or speed claim.

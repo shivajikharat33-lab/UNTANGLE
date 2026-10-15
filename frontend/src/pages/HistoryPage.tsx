@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import { compareVersions, listVersions } from "../api/jobs";
+import { compareVersions, listJobs, listVersions } from "../api/jobs";
+import type { JobListItem } from "../types/intake";
 import { apiSend, ApiError } from "../api/client";
 import { Alert } from "../components/Alert";
 import { EmptyState } from "../components/EmptyState";
@@ -18,10 +19,14 @@ export function HistoryPage() {
   const [error, setError] = useState<ApiError | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<JobListItem[] | null>(null);
 
   useEffect(() => {
     if (!id) {
-      setLoading(false);
+      listJobs()
+        .then(setProjects)
+        .catch(() => setProjects([]))
+        .finally(() => setLoading(false));
       return;
     }
     listVersions(id)
@@ -34,7 +39,19 @@ export function HistoryPage() {
   }, [id]);
 
   if (!id) {
-    return <EmptyState title="No project selected" description="Open a project before comparing versions." />;
+    return (
+      <div className="space-y-4">
+        <h1 className="font-display text-2xl">Versions</h1>
+        <p className="text-sm text-ink-soft">Choose a project. Version 0 stays the original. Later versions can be compared and restored as new copies.</p>
+        {loading ? <Spinner label="Loading projects" /> : null}
+        {projects && projects.length === 0 ? <EmptyState title="No projects yet" description="Upload a drawing and run extraction first." /> : null}
+        <ul className="space-y-2">
+          {(projects ?? []).map((project) => (
+            <li key={project.id}><Link className="font-semibold underline" to={`/app/projects/${project.id}/versions`}>{project.name}</Link></li>
+          ))}
+        </ul>
+      </div>
+    );
   }
 
   return (

@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-15T15:47:40.604523+00:00",
-  "drawing_count": 1,
+  "generated_at": "2026-10-15T16:00:11.460858+00:00",
+  "drawing_count": 3,
   "rows": [
     {
       "drawing_id": "synthetic-eval",
@@ -12,7 +12,37 @@
       "connections_matched": 1,
       "connections_expected": 1,
       "verification_difference": 1,
-      "limitations": "This table is one synthetic drawing. It is not a general accuracy or speed claim."
+      "stage_time": "n/a",
+      "warning_usefulness": "not labeled",
+      "limitations": "This table uses synthetic drawings only. Variants are not independent customer drawings. Unmeasured metrics are n/a. This is not a general accuracy or speed claim."
+    },
+    {
+      "drawing_id": "synthetic-eval-rotated",
+      "category": "variant",
+      "tags_matched": "n/a",
+      "tags_expected": "n/a",
+      "equipment_matched": "n/a",
+      "equipment_expected": "n/a",
+      "connections_matched": "n/a",
+      "connections_expected": "n/a",
+      "verification_difference": "n/a",
+      "stage_time": "n/a",
+      "warning_usefulness": "not labeled",
+      "limitations": "This table uses synthetic drawings only. Variants are not independent customer drawings. Unmeasured metrics are n/a. This is not a general accuracy or speed claim."
+    },
+    {
+      "drawing_id": "synthetic-eval-heldout",
+      "category": "held-out",
+      "tags_matched": "n/a",
+      "tags_expected": "n/a",
+      "equipment_matched": "n/a",
+      "equipment_expected": "n/a",
+      "connections_matched": "n/a",
+      "connections_expected": "n/a",
+      "verification_difference": "n/a",
+      "stage_time": "n/a",
+      "warning_usefulness": "not labeled",
+      "limitations": "This table uses synthetic drawings only. Variants are not independent customer drawings. Unmeasured metrics are n/a. This is not a general accuracy or speed claim."
     }
   ]
 }

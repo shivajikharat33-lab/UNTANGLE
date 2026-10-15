@@ -42,6 +42,24 @@ body {
   min-height: 100vh;
 }
 
+[data-theme="dark"] {
+  --paper: 18 24 32;
+  --paper-raised: 28 36 48;
+  --ink: 236 232 223;
+  --ink-soft: 186 196 208;
+  --line: 58 70 86;
+  --copper: 212 146 74;
+  --copper-deep: 232 176 110;
+}
+
+@media print {
+  :root, [data-theme="dark"] {
+    --paper: 255 255 255;
+    --ink: 0 0 0;
+    --paper-raised: 255 255 255;
+  }
+}
+
 :focus-visible {
   outline: 2px solid rgb(var(--teal));
   outline-offset: 3px;

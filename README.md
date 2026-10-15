@@ -84,6 +84,15 @@ From the `backend` folder, with the virtual environment active:
 python -m pytest
 ```
 
+Score the synthetic evaluation fixture from the repository root:
+
+```powershell
+$env:PYTHONPATH = "backend"
+.\.venv\Scripts\python.exe -m eval.run
+```
+
+The table is written to `eval/results`. Unmeasured rows say n/a. It is not a general accuracy claim.
+
 ## Samples
 
 Put real P&ID PDFs and IO workbooks in `data/samples/` on your own machine. Read `data/samples/README.md`. Those files are confidential. Do not commit them, and do not send them to a public cloud AI tool. Git ignores the files in `data/samples/` and everything in `data/uploads/`. The samples README is the only file from that folder that is meant to be committed.

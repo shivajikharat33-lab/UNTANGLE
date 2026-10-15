@@ -35,4 +35,9 @@ export interface JobListItem {
 export interface PublicConfig {
   max_upload_mb: number;
   modify_enabled?: boolean;
+  ask_graph_llm_enabled?: boolean;
+  fewshot_symbols_enabled?: boolean;
+  dark_theme_enabled?: boolean;
+  flow_animation_enabled?: boolean;
+  batch_upload_enabled?: boolean;
 }

@@ -2,7 +2,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { EditBanner } from "./EditBanner";
 import { HistoryCompare } from "./HistoryCompare";
+import { AskGraphBox } from "./AskGraphBox";
+import { FlowMarks } from "./FlowMarks";
 import { SanityList } from "./SanityList";
+import { ThemeToggle } from "./ThemeToggle";
 import { SimulationBanner } from "./SimulationBanner";
 
 describe("edit banner", () => {
@@ -36,6 +39,22 @@ describe("simulation banner", () => {
   it("names the simulation and hides itself when off", () => {
     expect(renderToStaticMarkup(<SimulationBanner on={false} />)).toBe("");
     expect(renderToStaticMarkup(<SimulationBanner on />)).toContain("SIMULATION - not real plant data");
+  });
+});
+
+describe("ask the graph box", () => {
+  it("shows the refusal wording", () => {
+    const html = renderToStaticMarkup(
+      <AskGraphBox question="weather" answer="That is not in the extracted graph." onQuestion={() => undefined} onAsk={() => undefined} />,
+    );
+    expect(html).toContain("That is not in the extracted graph.");
+  });
+});
+
+describe("stretch controls", () => {
+  it("hides the theme toggle when the flag is off and keeps reduced motion in the flow marks", () => {
+    expect(renderToStaticMarkup(<ThemeToggle enabled={false} mode="light" onChange={() => undefined} />)).toBe("");
+    expect(renderToStaticMarkup(<FlowMarks enabled onToggle={() => undefined} />)).toContain("prefers-reduced-motion");
   });
 });
 

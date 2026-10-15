@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import { getDraft, postDraftOperation, redoDraft, saveDraft, undoDraft } from "../api/jobs";
+import { getDraft, listJobs, openDraft, postDraftOperation, redoDraft, saveDraft, undoDraft } from "../api/jobs";
+import type { JobListItem } from "../types/intake";
 import { ApiError } from "../api/client";
 import { Alert } from "../components/Alert";
 import { EmptyState } from "../components/EmptyState";
@@ -15,6 +16,7 @@ export function EditPage() {
   const [error, setError] = useState<ApiError | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState("");
+  const [projects, setProjects] = useState<JobListItem[] | null>(null);
 
   async function reload(projectId: string) {
     const draft = await getDraft(projectId);
@@ -24,10 +26,21 @@ export function EditPage() {
 
   useEffect(() => {
     if (!id) {
-      setLoading(false);
+      listJobs()
+        .then(setProjects)
+        .catch(() => setProjects([]))
+        .finally(() => setLoading(false));
       return;
     }
     reload(id)
+      .catch(async (caught: unknown) => {
+        if (caught instanceof ApiError && caught.status === 404) {
+          await openDraft(id);
+          await reload(id);
+          return;
+        }
+        throw caught;
+      })
       .then(() => setError(null))
       .catch((caught: unknown) => setError(caught instanceof ApiError ? caught : new ApiError("The working copy could not be loaded.", 0, null)))
       .finally(() => setLoading(false));
@@ -63,7 +76,19 @@ export function EditPage() {
   }
 
   if (!id) {
-    return <EmptyState title="No project selected" description="Open a project from Results and choose Modify." />;
+    return (
+      <div className="space-y-4">
+        <h1 className="font-display text-2xl">Edit</h1>
+        <p className="text-sm text-ink-soft">Choose a project. Version 0 stays unchanged. Edits happen on a working copy.</p>
+        {loading ? <Spinner label="Loading projects" /> : null}
+        {projects && projects.length === 0 ? <EmptyState title="No projects yet" description="Upload a drawing and run extraction first." /> : null}
+        <ul className="space-y-2">
+          {(projects ?? []).map((project) => (
+            <li key={project.id}><Link className="font-semibold underline" to={`/app/projects/${project.id}/edit`}>{project.name}</Link></li>
+          ))}
+        </ul>
+      </div>
+    );
   }
 
   return (

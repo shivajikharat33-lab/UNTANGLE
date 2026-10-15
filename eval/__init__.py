@@ -1,1 +1,1 @@
-"""Evaluation harness. It reads answer keys and does not change project graphs."""
+"""Evaluation commands. Run python -m eval.run from the repository root."""

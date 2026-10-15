@@ -287,7 +287,10 @@ def test_upload_limit_is_separate_from_health(tmp_path: Path) -> None:
         config = client.get("/api/config")
     assert set(health.json()) == {"status", "version", "database", "time"}
     assert config.status_code == 200
-    assert config.json() == {"max_upload_mb": 2, "modify_enabled": True}
+    assert config.json()["max_upload_mb"] == 2
+    assert config.json()["modify_enabled"] is True
+    assert config.json()["ask_graph_llm_enabled"] is False
+    assert config.json()["fewshot_symbols_enabled"] is False
 
 
 def test_old_jobs_table_gains_upload_columns(tmp_path: Path) -> None:

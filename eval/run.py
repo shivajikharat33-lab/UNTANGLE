@@ -31,6 +31,7 @@ def run() -> dict:
     graph = DiagramGraph.model_validate(raw["graph"])
     scored = score_graph(graph, key)
     broken = raw.get("broken_user_removed", 0)
+    limitations = "This table uses synthetic drawings only. Variants are not independent customer drawings. Unmeasured metrics are n/a. This is not a general accuracy or speed claim."
     row = {
         "drawing_id": key.drawing_id,
         "category": raw.get("category", "sample"),
@@ -41,31 +42,50 @@ def run() -> dict:
         "connections_matched": scored.connections_matched,
         "connections_expected": scored.connections_expected,
         "verification_difference": broken,
-        "limitations": "This table is one synthetic drawing. It is not a general accuracy or speed claim.",
+        "stage_time": "n/a",
+        "warning_usefulness": "not labeled",
+        "limitations": limitations,
     }
+    blank = {
+        "tags_matched": "n/a",
+        "tags_expected": "n/a",
+        "equipment_matched": "n/a",
+        "equipment_expected": "n/a",
+        "connections_matched": "n/a",
+        "connections_expected": "n/a",
+        "verification_difference": "n/a",
+        "stage_time": "n/a",
+        "warning_usefulness": "not labeled",
+        "limitations": limitations,
+    }
+    rows = [
+        row,
+        {"drawing_id": "synthetic-eval-rotated", "category": "variant", **blank},
+        {"drawing_id": "synthetic-eval-heldout", "category": "held-out", **blank},
+    ]
     RESULTS.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).isoformat()
-    body = {"generated_at": stamp, "drawing_count": 1, "rows": [row]}
+    body = {"generated_at": stamp, "drawing_count": len(rows), "rows": rows}
     (RESULTS / "latest.json").write_text(json.dumps(body, indent=2), encoding="utf-8")
     with (RESULTS / "latest.csv").open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(row.keys()))
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
         writer.writeheader()
-        writer.writerow(row)
-    (RESULTS / "latest.md").write_text(
-        "\n".join([
-            f"# Evaluation {stamp}",
-            "",
-            f"Drawings: {body['drawing_count']}",
-            "",
-            "| drawing | category | tags | equipment | connections | verification difference |",
-            "| --- | --- | --- | --- | --- | --- |",
-            f"| {row['drawing_id']} | {row['category']} | {row['tags_matched']}/{row['tags_expected']} | {row['equipment_matched']}/{row['equipment_expected']} | {row['connections_matched']}/{row['connections_expected']} | {row['verification_difference']} |",
-            "",
-            row["limitations"],
-            "",
-        ]),
-        encoding="utf-8",
-    )
+        writer.writerows(rows)
+    lines = [
+        f"# Evaluation {stamp}",
+        "",
+        f"Drawings: {body['drawing_count']}",
+        "",
+        "| drawing | category | tags | equipment | connections | verification difference |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for item in rows:
+        tags = item["tags_matched"] if item["tags_matched"] == "n/a" else f"{item['tags_matched']}/{item['tags_expected']}"
+        equipment = item["equipment_matched"] if item["equipment_matched"] == "n/a" else f"{item['equipment_matched']}/{item['equipment_expected']}"
+        connections = item["connections_matched"] if item["connections_matched"] == "n/a" else f"{item['connections_matched']}/{item['connections_expected']}"
+        lines.append(f"| {item['drawing_id']} | {item['category']} | {tags} | {equipment} | {connections} | {item['verification_difference']} |")
+    lines.extend(["", limitations, ""])
+    (RESULTS / "latest.md").write_text("\n".join(lines), encoding="utf-8")
     return body
 
 

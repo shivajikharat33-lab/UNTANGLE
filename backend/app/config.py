@@ -61,3 +61,7 @@ class Settings(BaseSettings):
     # Ask the graph stays on stored facts unless this is turned on. It is off by default.
     ask_graph_llm_enabled: bool = False
     fewshot_symbols_enabled: bool = False
+    # Stretch switches. Off means the extra control is not offered.
+    dark_theme_enabled: bool = False
+    flow_animation_enabled: bool = False
+    batch_upload_enabled: bool = False
