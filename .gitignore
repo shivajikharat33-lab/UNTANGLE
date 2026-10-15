@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+dist/
+
+# Python environments and bytecode
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Secrets and local config
+.env
+
+# Confidential drawings and runtime uploads. Never commit these.
+data/samples/
+data/uploads/
+
+# Local database files created when the API is running
+*.db
