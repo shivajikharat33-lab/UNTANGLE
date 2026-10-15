@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { EditBanner } from "./EditBanner";
 import { HistoryCompare } from "./HistoryCompare";
+import { SanityList } from "./SanityList";
 
 describe("edit banner", () => {
   it("hides Modify when editing is turned off", () => {
@@ -20,6 +21,13 @@ describe("edit banner", () => {
     );
     expect(html).toContain("Unknown tag");
     expect(html).toContain("disabled");
+  });
+});
+
+describe("sanity list", () => {
+  it("states that a warning is not a fact", () => {
+    const html = renderToStaticMarkup(<SanityList warnings={[{ id: "1", rule: "ab-symmetry", reason: "This is a warning, not a fact that B is missing from the plant." }]} />);
+    expect(html).toContain("not a fact");
   });
 });
 

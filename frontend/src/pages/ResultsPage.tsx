@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { acceptOriginal, getConfig, getExtraction, getGraph, getItem, getJob, getSketchMeta, getSketchText, getTrace, getVerification, listJobs, openDraft, pagePreviewUrl, type ItemDetail } from "../api/jobs";
 import { EditBanner } from "../components/EditBanner";
-import { ApiError } from "../api/client";
+import { ApiError, apiFetch, apiSend } from "../api/client";
+import { SanityList } from "../components/SanityList";
 import { Alert } from "../components/Alert";
 import { DrawingViewer } from "../components/DrawingViewer";
 import { EmptyState } from "../components/EmptyState";
@@ -48,6 +49,8 @@ export function ResultsPage() {
   const [modifyEnabled, setModifyEnabled] = useState(true);
   const [accepted, setAccepted] = useState(false);
   const [bannerError, setBannerError] = useState("");
+  const [warnings, setWarnings] = useState<Array<{ id: string; rule: string; reason: string }>>([]);
+  const [detailLevel, setDetailLevel] = useState(2);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -138,6 +141,21 @@ export function ResultsPage() {
     getConfig().then((config) => setModifyEnabled(config.modify_enabled !== false)).catch(() => setModifyEnabled(true));
   }, []);
 
+  useEffect(() => {
+    if (!id) {
+      return;
+    }
+    apiFetch(`/api/jobs/${encodeURIComponent(id)}/sanity`)
+      .then(async (response) => {
+        if (!response.ok) {
+          setWarnings([]);
+          return;
+        }
+        setWarnings(await response.json() as Array<{ id: string; rule: string; reason: string }>);
+      })
+      .catch(() => setWarnings([]));
+  }, [id]);
+
   function choose(itemId: string) {
     const next = new URLSearchParams(params);
     next.set("select", itemId);
@@ -224,6 +242,16 @@ export function ResultsPage() {
   return (
     <div className="space-y-4">
       <h1 className="font-display text-2xl">Results</h1>
+      <div className="flex flex-wrap gap-2 text-sm">
+        {[1, 2, 3].map((level) => (
+          <button key={level} type="button" className={`rounded-full border px-3 py-1 ${detailLevel === level ? "border-ink bg-ink text-paper" : "border-line"}`} onClick={() => {
+            if (!id) return;
+            setDetailLevel(level);
+            void apiSend(`/api/jobs/${encodeURIComponent(id)}/detail-level`, "POST", { level }).catch((caught: unknown) => setBannerError(caught instanceof ApiError ? caught.message : "The detail level could not be redrawn."));
+          }}>Detail {level}</button>
+        ))}
+      </div>
+      <SanityList warnings={warnings} />
       {bannerError ? <Alert tone="error" title={bannerError} /> : null}
       <EditBanner
         modifyEnabled={modifyEnabled}

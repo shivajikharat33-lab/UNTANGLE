@@ -270,8 +270,11 @@ def export_workbook(engine: object, upload_dir: str, job_id: str) -> bytes:
         label = node.tag or node.id
         tags.append(label)
         nodes.append([_safe_cell(label), node.type, _safe_cell(node.signal), node.detail_level, node.kept])
+    from app.services.sanity import sanity_warnings
     warnings = book.create_sheet("Warnings")
     warnings.append(["Rule", "Message"])
+    for item in sanity_warnings(graph):
+        warnings.append([item.rule, item.reason])
     info = book.create_sheet("Info")
     info.append(["Job id", job_id])
     info.append(["Version", version_label])

@@ -316,7 +316,10 @@ def download_export(job_id: str, fmt: str, request: Request, draft: bool = False
         payload = guard_size(svg.encode("utf-8"))
         media = "image/svg+xml"
     elif fmt == "json":
-        payload = guard_size(graph_json(graph))
+        import json
+        from app.services.sanity import sanity_warnings
+        body = {"graph": json.loads(graph_json(graph)), "sanity_warnings": [item.model_dump() for item in sanity_warnings(graph)], "detail_level": 2}
+        payload = guard_size(json.dumps(body).encode("utf-8"))
         media = "application/json"
     elif fmt in {"png", "pdf"}:
         png, pdf = render_png_and_pdf(svg)

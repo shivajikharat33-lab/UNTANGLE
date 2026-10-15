@@ -6,6 +6,9 @@ from fastapi.responses import Response
 from app.errors import AppError
 from app.schemas.job import Version
 from app.services import edits
+from app.services.detail_view import render_detail
+from app.services.graph_build import load_graph
+from app.services.sanity import sanity_warnings
 
 router = APIRouter()
 
@@ -15,6 +18,23 @@ def _engine(request: Request):
     if engine is None:
         raise AppError(503, "DATABASE_UNAVAILABLE", "The database is not available.")
     return engine
+
+
+@router.get("/api/jobs/{job_id}/sanity")
+def get_sanity(job_id: str, request: Request) -> list:
+    """Read-only sanity warnings. The graph file is not written."""
+    settings = request.app.state.settings
+    return sanity_warnings(load_graph(settings.upload_dir, job_id))
+
+
+@router.post("/api/jobs/{job_id}/detail-level")
+def post_detail(job_id: str, request: Request, body: dict = Body()) -> dict:
+    """Redraw at detail level 1, 2, or 3. The stored graph is not changed."""
+    settings = request.app.state.settings
+    level = int(body.get("level", 2))
+    if level not in {1, 2, 3}:
+        raise AppError(422, "BAD_DETAIL_LEVEL", "Detail level must be 1, 2, or 3.", {"level": level})
+    return render_detail(settings.upload_dir, job_id, level)
 
 
 @router.get("/api/jobs/{job_id}/versions")
