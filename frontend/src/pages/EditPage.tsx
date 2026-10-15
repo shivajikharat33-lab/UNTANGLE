@@ -38,8 +38,20 @@ export function EditPage() {
     reload(id)
       .catch(async (caught: unknown) => {
         if (caught instanceof ApiError && caught.status === 404) {
-          await openDraft(id);
-          await reload(id);
+          try {
+            await openDraft(id);
+            await reload(id);
+            return;
+          } catch (opened) {
+            if (opened instanceof ApiError && opened.body?.error_code === "MODIFY_DISABLED") {
+              setRows([]);
+              return;
+            }
+            throw opened;
+          }
+        }
+        if (caught instanceof ApiError && caught.body?.error_code === "MODIFY_DISABLED") {
+          setRows([]);
           return;
         }
         throw caught;

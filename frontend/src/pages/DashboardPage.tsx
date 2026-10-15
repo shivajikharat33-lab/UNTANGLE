@@ -57,6 +57,11 @@ export function DashboardPage() {
 
       {error ? (
         <Alert tone="error" title={error.message}>
+          {error.status === 0 ? (
+            <p>
+              Start the API on port 8000, then open the site at http://127.0.0.1:5173 (not a closed tab). Click Check again in the header when it is up.
+            </p>
+          ) : null}
           {error.body?.request_id ? <p>Request id: {error.body.request_id}</p> : null}
         </Alert>
       ) : null}

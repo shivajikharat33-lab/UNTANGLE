@@ -26,3 +26,10 @@ This is a lightweight shared gate for a public demo. It is not user login, and i
 - There is no cancel route. Retry is `POST /api/jobs/{id}/process?retry=true`.
 - The gate token in the browser is kept in `sessionStorage` so the site on port 5173 can call the API on port 8000. A script running in the page can read that token. That is acceptable for this demo gate and is not a substitute for a login system.
 - SQLite and the upload folder are only as durable as the disk they sit on.
+
+## Dependency audit
+
+Checked on 15 October 2026.
+
+- `pip-audit -r backend/requirements.txt`: no known vulnerabilities.
+- `npm audit` in `frontend`: 7 findings, all through Tailwind CSS 3 and its build tools (braces, chokidar, micromatch, postcss-selector-parser). The suggested fix is Tailwind 4, which is a major upgrade. Those packages are used while building the site. They are not a reason to rewrite the interface in this phase. The findings stay documented rather than force-upgraded.
