@@ -26,6 +26,7 @@ from app.services.render import SketchMeta, load_sketch_meta, load_sketch_svg
 from app.services.simplify import load_simplified
 from app.services.patterns import load_patterns
 from app.services.tag_match import load_tag_report
+from app.services.downloads import attachment_disposition
 from app.services.export_files import cache_export, export_metadata, graph_json, guard_size, render_png_and_pdf, source_hash, workbook_bytes
 from app.services.reports_view import ReportPage, connection_rows, page_of, tag_rows
 from app.services.trace import ItemDetail, TraceResult, item_detail, trace_item
@@ -47,12 +48,15 @@ def public_config(request: Request) -> PublicConfig:
     settings = request.app.state.settings
     return PublicConfig(
         max_upload_mb=settings.max_upload_mb,
-        modify_enabled=settings.modify_enabled,
         ask_graph_llm_enabled=settings.ask_graph_llm_enabled,
         fewshot_symbols_enabled=settings.fewshot_symbols_enabled,
         dark_theme_enabled=settings.dark_theme_enabled,
         flow_animation_enabled=settings.flow_animation_enabled,
         batch_upload_enabled=settings.batch_upload_enabled,
+        access_required=bool(settings.demo_access_code),
+        public_demo_mode=settings.public_demo_mode,
+        max_pdf_pages=settings.max_pdf_pages,
+        modify_enabled=settings.modify_enabled and not settings.public_demo_mode,
     )
 
 
@@ -65,6 +69,8 @@ async def create_job(
 ) -> JSONResponse:
     """Store one PDF and one xlsx workbook and record Intake."""
     settings = request.app.state.settings
+    if settings.public_demo_mode:
+        raise AppError(403, "UPLOADS_DISABLED", "This public demo does not accept uploads. Open the synthetic project.")
     engine = _engine_or_error(request)
     session = Session(engine)
     try:
@@ -169,6 +175,7 @@ def process_job(
         retry,
         settings.cache_dir,
         resume_from,
+        settings.job_timeout_seconds,
     )
     return snapshot
 
@@ -345,7 +352,14 @@ def download_export(job_id: str, fmt: str, request: Request, draft: bool = False
         raise AppError(409, "EXPORT_DRAFT", "A draft export must not say Verified.", {"job_id": job_id})
     cache_export(settings.cache_dir, key, filename, payload)
     meta = export_metadata(job_id, "original.pdf", pdf_hash, "io_list.xlsx", io_hash, version, draft, graph.verification.state if graph.verification else "", graph.verification.failing != [] if graph.verification else False, len(graph.ledger), fmt, filename, media, len(payload))
-    return Response(content=payload, media_type=media, headers={"Content-Disposition": f'attachment; filename="{filename}"', "X-Export-Meta": meta.model_dump_json()})
+    return Response(
+        content=payload,
+        media_type=media,
+        headers={
+            "Content-Disposition": attachment_disposition(filename),
+            "X-Export-Meta": meta.model_dump_json(),
+        },
+    )
 
 
 def hashlib_file(path) -> str:
@@ -475,7 +489,12 @@ def page_preview(job_id: str, page_number: int, request: Request, zoom: float = 
     return Response(
         content=payload,
         media_type="image/png",
-        headers={"X-Page-Width": str(width), "X-Page-Height": str(height), "Cache-Control": "private, max-age=3600"},
+        headers={
+            "X-Page-Width": str(width),
+            "X-Page-Height": str(height),
+            "Cache-Control": "private, max-age=3600",
+            "Content-Disposition": f'inline; filename="page-{page_number}.png"',
+        },
     )
 
 

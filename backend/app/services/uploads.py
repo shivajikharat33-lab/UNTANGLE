@@ -18,8 +18,7 @@ from app.models import JobRow
 from app.schemas.intake import IntakeSummary, SheetSummary, StoredFile
 from app.schemas.job import Job
 from app.schemas.stages import STAGE_ORDER, StageRecord
-from app.services.excel_intake import inspect_workbook_bytes
-from app.services.pdf_inspect import inspect_pdf_bytes
+from app.services.bounded_parse import inspect_pdf, inspect_xlsx
 
 logger = logging.getLogger("untangle.uploads")
 
@@ -158,7 +157,11 @@ async def create_uploaded_job(
 
     started = datetime.now(timezone.utc)
     try:
-        pdf_report = inspect_pdf_bytes(pdf_bytes)
+        pdf_report = inspect_pdf(pdf_bytes, settings)
+    except AppError as exc:
+        details = dict(exc.details or {})
+        details.setdefault("field", "pid_pdf")
+        raise AppError(exc.status_code, exc.error_code, exc.message, details) from None
     except Exception as exc:
         logger.info("pdf intake failed (%s)", type(exc).__name__)
         raise AppError(
@@ -175,7 +178,11 @@ async def create_uploaded_job(
             {"field": "pid_pdf"},
         )
     try:
-        sheets = inspect_workbook_bytes(io_bytes)
+        sheets = inspect_xlsx(io_bytes, settings)
+    except AppError as exc:
+        details = dict(exc.details or {})
+        details.setdefault("field", "io_list")
+        raise AppError(exc.status_code, exc.error_code, exc.message, details) from None
     except Exception as exc:
         logger.info("excel intake failed (%s)", type(exc).__name__)
         raise AppError(

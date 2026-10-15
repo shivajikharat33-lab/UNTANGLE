@@ -7,6 +7,7 @@ A graph over the size limit returns a structured error and no coordinates.
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 from typing import Literal
 
@@ -16,6 +17,8 @@ from app import graph_config as cfg
 from app.errors import AppError
 from app.schemas.graph import SimplifiedGraph
 from app.services.storage import LAYOUT_NAME, job_folder, read_json, write_json
+
+logger = logging.getLogger("untangle.layout")
 
 class LayoutNode(BaseModel):
     id: str
@@ -168,18 +171,20 @@ def _terminal_constraint(node, graph: SimplifiedGraph) -> str:
 
 def _run_elk(payload: dict) -> dict:
     script = _script_path()
-    if not script.is_file():
-        raise AppError(500, "LAYOUT_ENGINE_MISSING", "The elkjs layout script is not in the repository.", {"script": str(script)})
-    completed = subprocess.run(
-        ["node", str(script)],
-        input=json.dumps(payload),
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=60,
-    )
-    if completed.returncode != 0:
-        raise AppError(500, "LAYOUT_ENGINE_FAILED", "ELK did not return a layout. No coordinates were invented.", {"stderr": completed.stderr[-500:]})
+        if not script.is_file():
+            logger.info("layout script missing")
+            raise AppError(500, "LAYOUT_ENGINE_MISSING", "The elkjs layout script is not available.")
+        completed = subprocess.run(
+            ["node", str(script)],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+        )
+        if completed.returncode != 0:
+            logger.info("layout engine failed")
+            raise AppError(500, "LAYOUT_ENGINE_FAILED", "ELK did not return a layout. No coordinates were invented.")
     return json.loads(completed.stdout)
 
 

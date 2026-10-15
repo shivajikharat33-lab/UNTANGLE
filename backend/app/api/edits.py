@@ -6,6 +6,7 @@ from fastapi.responses import Response
 from app.errors import AppError
 from app.schemas.job import Version
 from app.services import edits
+from app.services.downloads import attachment_disposition
 from app.services.detail_view import render_detail
 from app.services.graph_build import load_graph
 from app.services.ask_graph import ask_graph
@@ -13,6 +14,16 @@ from app.services.job_compare import compare_jobs
 from app.services.sanity import sanity_warnings
 
 router = APIRouter()
+
+
+def _can_modify(request: Request) -> bool:
+    settings = request.app.state.settings
+    return bool(settings.modify_enabled) and not bool(settings.public_demo_mode)
+
+
+def _reject_demo_upload(request: Request) -> None:
+    if request.app.state.settings.public_demo_mode:
+        raise AppError(403, "UPLOADS_DISABLED", "This public demo does not accept uploads.")
 
 
 def _engine(request: Request):
@@ -73,7 +84,7 @@ def accept_original(job_id: str, request: Request) -> Version:
 def open_draft(job_id: str, request: Request) -> dict:
     """Start a working copy from version 0."""
     settings = request.app.state.settings
-    return edits.start_modify(_engine(request), settings.upload_dir, job_id, settings.modify_enabled)
+    return edits.start_modify(_engine(request), settings.upload_dir, job_id, _can_modify(request))
 
 
 @router.get("/api/jobs/{job_id}/draft")
@@ -87,35 +98,35 @@ def read_draft(job_id: str, request: Request) -> dict:
 def post_operation(job_id: str, request: Request, body: dict = Body()) -> dict:
     """Apply one connection-list operation and redraw."""
     settings = request.app.state.settings
-    return edits.apply_operation(_engine(request), settings.upload_dir, job_id, body, settings.modify_enabled)
+    return edits.apply_operation(_engine(request), settings.upload_dir, job_id, body, _can_modify(request))
 
 
 @router.post("/api/jobs/{job_id}/draft/undo")
 def post_undo(job_id: str, request: Request) -> dict:
     """Undo the last edit on the working copy."""
     settings = request.app.state.settings
-    return edits.undo_draft(_engine(request), settings.upload_dir, job_id, settings.modify_enabled)
+    return edits.undo_draft(_engine(request), settings.upload_dir, job_id, _can_modify(request))
 
 
 @router.post("/api/jobs/{job_id}/draft/redo")
 def post_redo(job_id: str, request: Request) -> dict:
     """Redo an undone edit on the working copy."""
     settings = request.app.state.settings
-    return edits.redo_draft(_engine(request), settings.upload_dir, job_id, settings.modify_enabled)
+    return edits.redo_draft(_engine(request), settings.upload_dir, job_id, _can_modify(request))
 
 
 @router.post("/api/jobs/{job_id}/draft/save")
 def post_save(job_id: str, request: Request, body: dict = Body(default={})) -> Version:
     """Save the working copy as the next version."""
     settings = request.app.state.settings
-    return edits.save_draft(_engine(request), settings.upload_dir, job_id, str(body.get("note", "")), settings.modify_enabled)
+    return edits.save_draft(_engine(request), settings.upload_dir, job_id, str(body.get("note", "")), _can_modify(request))
 
 
 @router.post("/api/jobs/{job_id}/versions/{number}/restore")
 def post_restore(job_id: str, number: int, request: Request) -> Version:
     """Copy a saved version into a new version."""
     settings = request.app.state.settings
-    return edits.restore_version(_engine(request), settings.upload_dir, job_id, number, settings.modify_enabled)
+    return edits.restore_version(_engine(request), settings.upload_dir, job_id, number, _can_modify(request))
 
 
 @router.get("/api/jobs/{job_id}/versions/compare")
@@ -132,7 +143,7 @@ def download_connections(job_id: str, request: Request) -> Response:
     return Response(
         content=payload,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{job_id}-connections.xlsx"'},
+        headers={"Content-Disposition": attachment_disposition(f"{job_id}-connections.xlsx")},
     )
 
 
@@ -140,14 +151,25 @@ def download_connections(job_id: str, request: Request) -> Response:
 async def validate_connections(job_id: str, request: Request, workbook: UploadFile = File(...)) -> dict:
     """Validate an edited workbook and return the diff. Nothing is saved."""
     settings = request.app.state.settings
+    _reject_demo_upload(request)
     payload = await workbook.read()
-    return edits.validate_workbook(settings.upload_dir, job_id, workbook.filename or "", payload, settings.max_upload_mb * 1024 * 1024)
+    return edits.validate_workbook(
+        settings.upload_dir,
+        job_id,
+        workbook.filename or "",
+        payload,
+        settings.max_upload_mb * 1024 * 1024,
+        settings.zip_max_uncompressed_bytes,
+        settings.zip_max_entries,
+        settings.inspect_timeout_seconds,
+    )
 
 
 @router.post("/api/jobs/{job_id}/connections/apply")
 async def apply_connections(job_id: str, request: Request, workbook: UploadFile = File(...)) -> dict:
     """Apply a workbook that has no blocking errors."""
     settings = request.app.state.settings
+    _reject_demo_upload(request)
     payload = await workbook.read()
     return edits.apply_workbook(
         _engine(request),
@@ -156,7 +178,10 @@ async def apply_connections(job_id: str, request: Request, workbook: UploadFile 
         workbook.filename or "",
         payload,
         settings.max_upload_mb * 1024 * 1024,
-        settings.modify_enabled,
+        _can_modify(request),
+        settings.zip_max_uncompressed_bytes,
+        settings.zip_max_entries,
+        settings.inspect_timeout_seconds,
     )
 
 
@@ -165,4 +190,4 @@ def download_print(job_id: str, request: Request, page_size: str = "A4", orienta
     """Download a vector print PDF with a title block and legend."""
     settings = request.app.state.settings
     payload = edits.print_pdf(settings.upload_dir, job_id, page_size=page_size, orientation=orientation)
-    return Response(content=payload, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{job_id}-print.pdf"'})
+    return Response(content=payload, media_type="application/pdf", headers={"Content-Disposition": attachment_disposition(f"{job_id}-print.pdf")})

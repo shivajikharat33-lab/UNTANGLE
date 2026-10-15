@@ -5,6 +5,8 @@ from uuid import uuid4
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.datastructures import MutableHeaders
 
+from app.request_context import request_id_var
+
 
 class RequestIdMiddleware:
     """Set request.state.request_id and the X-Request-ID response header."""
@@ -20,6 +22,7 @@ class RequestIdMiddleware:
         request_id = str(uuid4())
         scope.setdefault("state", {})
         scope["state"]["request_id"] = request_id
+        token = request_id_var.set(request_id)
 
         async def send_with_request_id(message: Message) -> None:
             if message["type"] == "http.response.start":
@@ -28,4 +31,7 @@ class RequestIdMiddleware:
                     headers.append("X-Request-ID", request_id)
             await send(message)
 
-        await self.app(scope, receive, send_with_request_id)
+        try:
+            await self.app(scope, receive, send_with_request_id)
+        finally:
+            request_id_var.reset(token)

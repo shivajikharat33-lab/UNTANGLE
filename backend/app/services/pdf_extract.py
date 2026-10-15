@@ -515,12 +515,24 @@ def _document_status(pages: list[PageExtraction]) -> tuple[str, str]:
     if statuses == {"no_vector_content"}:
         return "no_vector_content", "No vector content was found, and there was no page image to read. Nothing was invented."
     if statuses == {"ocr_unavailable"}:
+        from app.services.pdf_raster import ocr_in_this_build
+
+        if not ocr_in_this_build():
+            return (
+                "ocr_unavailable",
+                "This PDF has no vector content. OCR is not available in this build, so text was not invented. "
+                "Vector files are unaffected.",
+            )
         return (
             "ocr_unavailable",
             "This PDF has no vector content. OCR is not installed, so text was not invented. "
             "Install the Tesseract program, then run extraction again. Vector files are unaffected.",
         )
     if "ocr_unavailable" in statuses:
+        from app.services.pdf_raster import ocr_in_this_build
+
+        if not ocr_in_this_build():
+            return "partial", "Some pages need OCR, which is not available in this build. Pages with vector content were still read."
         return "partial", "Some pages need OCR, which is not installed. Pages with vector content were still read."
     return "partial", "Some pages have vector content and some do not. Empty pages were not filled in."
 

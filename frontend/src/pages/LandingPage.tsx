@@ -167,20 +167,20 @@ export function LandingPage() {
               <div>
                 <h3 className="font-semibold text-teal">Works today</h3>
                 <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-ink-soft">
-                  <li>The API health check in the app header.</li>
-                  <li>Create a project by uploading a P&amp;ID PDF and an IO workbook.</li>
-                  <li>See the page count and whether the PDF is vector, scanned, or mixed.</li>
-                  <li>See the Excel sheet names, column names, and row counts.</li>
-                  <li>See Intake marked done, and the other stages waiting.</li>
+                  <li>Upload a P&amp;ID PDF and an IO workbook, then run extraction.</li>
+                  <li>Read pages, detect symbols, and match tags to the IO list.</li>
+                  <li>Build the graph, simplified sketch, reports, and downloads.</li>
+                  <li>Edit the connection list. Version 0 stays the original.</li>
+                  <li>Compare versions and restore an older one as a new version.</li>
                 </ul>
               </div>
               <div>
-                <h3 className="font-semibold text-copper-deep">Not built yet</h3>
+                <h3 className="font-semibold text-copper-deep">Limits</h3>
                 <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-ink-soft">
-                  <li>Reading symbols and matching tags to the IO list.</li>
-                  <li>Tracing lines, flow direction, and duty/standby layout.</li>
-                  <li>The simplified sketch, reports, and downloads.</li>
-                  <li>Editing, version compare, and a Verified badge on a real result.</li>
+                  <li>There is no login. Edits are recorded as the local user.</li>
+                  <li>Verified means the defined automated checks passed. It is not an engineering or safety certification.</li>
+                  <li>The optional model, few-shot symbols, dark theme, and flow animation stay off.</li>
+                  <li>Detection counts on the sample drawing are not a product accuracy percentage.</li>
                 </ul>
               </div>
             </div>

@@ -1,11 +1,52 @@
 import type { ErrorResponse } from "../types/errors";
 
 const DEFAULT_API_URL = "http://127.0.0.1:8000";
+const TOKEN_KEY = "untangle.accessToken";
 
 export function apiBaseUrl(): string {
-  const configured = import.meta.env.VITE_API_URL?.trim();
-  const base = configured && configured.length > 0 ? configured : DEFAULT_API_URL;
-  return base.replace(/\/$/, "");
+  const configured = import.meta.env.VITE_API_URL;
+  if (configured === undefined || configured === null) {
+    return DEFAULT_API_URL;
+  }
+  const trimmed = String(configured).trim();
+  if (trimmed === "" || trimmed === "/") {
+    return "";
+  }
+  return trimmed.replace(/\/$/, "");
+}
+
+export function accessToken(): string {
+  if (typeof sessionStorage === "undefined") {
+    return "";
+  }
+  return sessionStorage.getItem(TOKEN_KEY) ?? "";
+}
+
+export function setAccessToken(token: string): void {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+  sessionStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearAccessToken(): void {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+  sessionStorage.removeItem(TOKEN_KEY);
+}
+
+export function authHeaders(): Record<string, string> {
+  const token = accessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export function noteAccessFailure(body: ErrorResponse | null): void {
+  if (body?.error_code !== "ACCESS_REQUIRED" || typeof window === "undefined") {
+    return;
+  }
+  clearAccessToken();
+  window.dispatchEvent(new Event("untangle-locked"));
 }
 
 export class ApiError extends Error {
@@ -43,7 +84,8 @@ export async function apiSend(
     return await fetch(`${apiBaseUrl()}${path}`, {
       method,
       signal,
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      credentials: "include",
+      headers: { Accept: "application/json", "Content-Type": "application/json", ...authHeaders() },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch (error) {
@@ -58,7 +100,8 @@ export async function apiFetch(path: string, signal?: AbortSignal): Promise<Resp
   try {
     return await fetch(`${apiBaseUrl()}${path}`, {
       signal,
-      headers: { Accept: "application/json" },
+      credentials: "include",
+      headers: { Accept: "application/json", ...authHeaders() },
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -71,7 +114,9 @@ export async function apiFetch(path: string, signal?: AbortSignal): Promise<Resp
 export async function readErrorBody(response: Response): Promise<ErrorResponse | null> {
   try {
     const payload: unknown = await response.json();
-    return isErrorResponse(payload) ? payload : null;
+    const body = isErrorResponse(payload) ? payload : null;
+    noteAccessFailure(body);
+    return body;
   } catch {
     return null;
   }

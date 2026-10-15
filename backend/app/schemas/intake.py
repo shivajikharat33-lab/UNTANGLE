@@ -57,3 +57,6 @@ class PublicConfig(BaseModel):
     dark_theme_enabled: bool = False
     flow_animation_enabled: bool = False
     batch_upload_enabled: bool = False
+    access_required: bool = False
+    public_demo_mode: bool = False
+    max_pdf_pages: int = Field(default=40, ge=1)

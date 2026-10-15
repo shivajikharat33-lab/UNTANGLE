@@ -1,6 +1,7 @@
 """Turn every failure into the shared ErrorResponse body."""
 
 import logging
+import re
 from uuid import uuid4
 
 from fastapi import FastAPI, Request
@@ -13,6 +14,28 @@ from app.errors import AppError
 from app.schemas.errors import ErrorResponse
 
 logger = logging.getLogger("untangle.api")
+
+_PRIVATE_TEXT = re.compile(r"([A-Za-z]:\\|\\\\|/Users/|/home/|/opt/|/var/|/tmp/|/app/)")
+
+
+def scrub_details(details: dict | None) -> dict | None:
+    """Drop filesystem paths and tracebacks from the body the browser receives."""
+    if details is None:
+        return None
+
+    def clean(value: object) -> object:
+        if isinstance(value, str):
+            if "Traceback" in value or _PRIVATE_TEXT.search(value):
+                return "[redacted]"
+            return value
+        if isinstance(value, dict):
+            return {str(key): clean(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [clean(item) for item in value]
+        return value
+
+    cleaned = clean(details)
+    return cleaned if isinstance(cleaned, dict) else None
 
 
 def get_request_id(request: Request) -> str:
@@ -36,7 +59,7 @@ def error_response(
     payload = ErrorResponse(
         error_code=error_code,
         message=message,
-        details=details,
+        details=scrub_details(details),
         request_id=request_id,
     )
     return JSONResponse(

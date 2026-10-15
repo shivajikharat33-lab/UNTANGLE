@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import contextvars
 import hashlib
 import logging
 import threading
+import time
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
@@ -24,6 +26,29 @@ from app.services.tag_match import PrerequisiteError
 from app.services.uploads import job_from_row
 
 logger = logging.getLogger("untangle.pipeline")
+
+_DEADLINE: contextvars.ContextVar[float | None] = contextvars.ContextVar("untangle_job_deadline", default=None)
+
+
+class ProcessingTimeout(BaseException):
+    """The job clock ran out. Stage handlers do not rewrite this as a generic error."""
+
+
+def _check_deadline(engine: object, job_id: str, stage: str) -> None:
+    """Mark the named stage failed when the job clock has already run out."""
+    deadline = _DEADLINE.get()
+    if deadline is None or time.monotonic() <= deadline:
+        return
+    _finish_stage(
+        engine,
+        job_id,
+        stage,
+        status="failed",
+        warnings=[],
+        error="Processing timed out. The original files were not changed.",
+    )
+    raise ProcessingTimeout()
+
 
 _GUARD = threading.Lock()
 _JOB_LOCKS: dict[str, threading.Lock] = {}
@@ -143,11 +168,13 @@ def finish_process(
     retry: bool = False,
     cache_dir: str = "",
     resume_from: str = "Read",
+    job_timeout_seconds: float = 600,
 ) -> None:
     """Read the PDF, then match tags. A failed stage leaves earlier files in place."""
     lock = job_lock(job_id)
     key = ""
     folder = None
+    deadline_token = _DEADLINE.set(time.monotonic() + float(job_timeout_seconds))
     try:
         folder = job_folder(upload_dir, job_id)
         if cache_dir and (folder / PDF_NAME).is_file():
@@ -160,10 +187,13 @@ def finish_process(
                     _finish_stage(engine, job_id, name, status="done", warnings=["Loaded from the local cache."], error=None)
                 return
         if resume_from != "Read":
+            _check_deadline(engine, job_id, resume_from)
             _resume(engine, upload_dir, job_id, resume_from, fuzzy_threshold, process_min_stroke, signal_max_stroke, snap_tolerance, node_attach_tolerance)
             return
         try:
+            _check_deadline(engine, job_id, "Read")
             result = pdf_extract.extract_pdf(folder / PDF_NAME)
+            _check_deadline(engine, job_id, "Read")
             write_json(folder / EXTRACTION_NAME, result.model_dump(mode="json"))
             warnings = [] if result.status == "ok" else [result.message]
             _finish_stage(engine, job_id, "Read", status="done", warnings=warnings, error=None)
@@ -188,7 +218,10 @@ def finish_process(
             snap_tolerance,
             node_attach_tolerance,
         )
+    except ProcessingTimeout:
+        logger.info("processing timed out for job %s", job_id)
     finally:
+        _DEADLINE.reset(deadline_token)
         if cache_dir and key and folder is not None:
             for name in ("extraction.json", "tag_report.json", "detections.json", "geometry.json", "graph.json", "simplified.json", "layout.json", "sketch.svg", "sketch_meta.json", "sketch_draft.svg"):
                 store_file(cache_dir, key, name, folder / name)
@@ -264,6 +297,7 @@ def _run_match(
     snap_tolerance: float,
     node_attach_tolerance: float,
 ) -> None:
+    _check_deadline(engine, job_id, "MatchTags")
     _mark_running(engine, job_id, "MatchTags")
     try:
         folder = job_folder(upload_dir, job_id)
@@ -320,6 +354,7 @@ def _run_detect(
     snap_tolerance: float,
     node_attach_tolerance: float,
 ) -> None:
+    _check_deadline(engine, job_id, "Detect")
     _mark_running(engine, job_id, "Detect")
     try:
         folder = job_folder(upload_dir, job_id)
@@ -356,6 +391,7 @@ def _run_geometry(
     snap_tolerance: float,
     node_attach_tolerance: float,
 ) -> None:
+    _check_deadline(engine, job_id, "Trace")
     try:
         folder = job_folder(upload_dir, job_id)
         extraction = ExtractionResult.model_validate(read_json(folder / EXTRACTION_NAME))
@@ -406,6 +442,7 @@ def _run_trace(
     node_attach_tolerance: float,
 ) -> None:
     """Trace is the Building graph stage. The stored stage name stays Trace."""
+    _check_deadline(engine, job_id, "Trace")
     _mark_running(engine, job_id, "Trace")
     folder = job_folder(upload_dir, job_id)
     graph_path = folder / GRAPH_NAME
@@ -447,6 +484,7 @@ def _run_trace(
 
 def _run_patterns(engine: object, upload_dir: str, job_id: str) -> None:
     """Patterns is the Detecting patterns stage. The stored name stays Patterns."""
+    _check_deadline(engine, job_id, "Patterns")
     _mark_running(engine, job_id, "Patterns")
     try:
         folder = job_folder(upload_dir, job_id)
@@ -481,6 +519,7 @@ def _run_patterns(engine: object, upload_dir: str, job_id: str) -> None:
 
 def _run_checks(engine: object, upload_dir: str, job_id: str) -> None:
     """SelfCheck is the Running checks stage. The stored name stays SelfCheck."""
+    _check_deadline(engine, job_id, "SelfCheck")
     _mark_running(engine, job_id, "SelfCheck")
     try:
         folder = job_folder(upload_dir, job_id)
@@ -511,6 +550,7 @@ def _run_checks(engine: object, upload_dir: str, job_id: str) -> None:
 
 def _run_coverage(engine: object, upload_dir: str, job_id: str) -> None:
     """Report is the Computing coverage stage. The stored name stays Report."""
+    _check_deadline(engine, job_id, "Report")
     _mark_running(engine, job_id, "Report")
     try:
         folder = job_folder(upload_dir, job_id)
@@ -543,6 +583,7 @@ def _run_coverage(engine: object, upload_dir: str, job_id: str) -> None:
 
 def _run_simplify(engine: object, upload_dir: str, job_id: str) -> None:
     """Simplify is stored as simplified.json. graph.json is not replaced."""
+    _check_deadline(engine, job_id, "Simplify")
     _mark_running(engine, job_id, "Simplify")
     try:
         folder = job_folder(upload_dir, job_id)
@@ -574,6 +615,7 @@ def _run_simplify(engine: object, upload_dir: str, job_id: str) -> None:
 
 def _run_layout(engine: object, upload_dir: str, job_id: str) -> None:
     """Layout uses ELK. A graph over the limit fails with no invented coordinates."""
+    _check_deadline(engine, job_id, "Layout")
     _mark_running(engine, job_id, "Layout")
     try:
         folder = job_folder(upload_dir, job_id)

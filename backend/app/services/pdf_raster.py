@@ -28,6 +28,31 @@ OCR_INSTALL = (
     "Install the Tesseract program and keep pytesseract available, then run extraction again. "
     "Vector pages are unaffected."
 )
+OCR_NOT_IN_BUILD = (
+    "OCR is not available in this build. Text was not invented. Vector pages are unaffected."
+)
+
+_OCR_IN_BUILD: bool | None = None
+
+
+def set_ocr_in_build(enabled: bool) -> None:
+    """Remember whether this process was started with OCR included."""
+    global _OCR_IN_BUILD
+    _OCR_IN_BUILD = enabled
+
+
+def ocr_in_this_build() -> bool:
+    """False only for an image built without the OCR program."""
+    if _OCR_IN_BUILD is not None:
+        return _OCR_IN_BUILD
+    return True
+
+
+def ocr_message() -> str:
+    """The sentence stored when a scanned page cannot be read as text."""
+    if ocr_in_this_build():
+        return OCR_INSTALL
+    return OCR_NOT_IN_BUILD
 
 
 def pixel_to_pdf(px: float, py: float, zoom: float) -> tuple[float, float]:
@@ -36,7 +61,9 @@ def pixel_to_pdf(px: float, py: float, zoom: float) -> tuple[float, float]:
 
 
 def ocr_available() -> bool:
-    """True only when the Tesseract program can be started."""
+    """True only when this build includes OCR and the Tesseract program can be started."""
+    if not ocr_in_this_build():
+        return False
     try:
         import pytesseract
     except ImportError:
@@ -266,7 +293,7 @@ def read_raster_page(page: fitz.Page, number: int) -> PageExtraction:
     text_available = ocr_available()
     words = _words(gray, zoom) if text_available else []
     if not text_available:
-        unused.append(UnusedPrimitive(kind="ocr", reason=OCR_INSTALL))
+        unused.append(UnusedPrimitive(kind="ocr", reason=ocr_message()))
     read_count = line_count + len(circles) + contour_count + (0 if text_available else 1)
     used_count = line_count + len(circles) + contour_used
     counts = PageCounts(
@@ -284,7 +311,7 @@ def read_raster_page(page: fitz.Page, number: int) -> PageExtraction:
         message = "This page was read from a raster image at 300 DPI. OCR text is not an exact read."
     else:
         status = "ocr_unavailable"
-        message = OCR_INSTALL
+        message = ocr_message()
     logger.info("raster page %s status=%s words=%s lines=%s", number, status, len(words), line_count)
     return PageExtraction(
         page=number,

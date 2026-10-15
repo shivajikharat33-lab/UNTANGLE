@@ -290,12 +290,34 @@ def export_workbook(engine: object, upload_dir: str, job_id: str) -> bytes:
     return buffer.getvalue()
 
 
-def validate_workbook(upload_dir: str, job_id: str, filename: str, payload: bytes, max_bytes: int) -> dict:
-    """Check an edited workbook. Nothing is applied."""
+def validate_workbook(
+    upload_dir: str,
+    job_id: str,
+    filename: str,
+    payload: bytes,
+    max_bytes: int,
+    max_uncompressed_bytes: int = 200 * 1024 * 1024,
+    max_zip_entries: int = 2000,
+    inspect_timeout_seconds: int = 30,
+) -> dict:
+    """Check an edited workbook. Nothing is applied. Formulas are not evaluated."""
     if not filename.lower().endswith(".xlsx"):
-        raise AppError(415, "UNSUPPORTED_FILE", "Only an .xlsx workbook can be imported. Macro files are refused.", {"filename": filename})
+        shown = filename.replace("\\", "/").rsplit("/", 1)[-1][:200] or "workbook"
+        raise AppError(415, "UNSUPPORTED_FILE", "Only an .xlsx workbook can be imported. Macro files are refused.", {"filename": shown})
     if len(payload) > max_bytes:
         raise AppError(413, "FILE_TOO_LARGE", "That workbook is larger than the upload limit.", {"limit_bytes": max_bytes})
+    from app.config import Settings
+    from app.services.bounded_parse import inspect_xlsx
+
+    inspect_xlsx(
+        payload,
+        Settings(
+            upload_dir=upload_dir,
+            zip_max_uncompressed_bytes=max_uncompressed_bytes,
+            zip_max_entries=max_zip_entries,
+            inspect_timeout_seconds=inspect_timeout_seconds,
+        ),
+    )
     graph = graph_build.load_graph(upload_dir, job_id)
     known = {node.tag or node.id for node in graph.nodes}
     book = load_workbook(io.BytesIO(payload), data_only=True, read_only=True)
@@ -353,10 +375,30 @@ def validate_workbook(upload_dir: str, job_id: str, filename: str, payload: byte
     return {"errors": errors, "warnings": warnings, "preview": changes}
 
 
-def apply_workbook(engine: object, upload_dir: str, job_id: str, filename: str, payload: bytes, max_bytes: int, enabled: bool) -> dict:
+def apply_workbook(
+    engine: object,
+    upload_dir: str,
+    job_id: str,
+    filename: str,
+    payload: bytes,
+    max_bytes: int,
+    enabled: bool,
+    max_uncompressed_bytes: int = 200 * 1024 * 1024,
+    max_zip_entries: int = 2000,
+    inspect_timeout_seconds: int = 30,
+) -> dict:
     """Apply a validated workbook onto a new working copy."""
     _require_modify(enabled)
-    checked = validate_workbook(upload_dir, job_id, filename, payload, max_bytes)
+    checked = validate_workbook(
+        upload_dir,
+        job_id,
+        filename,
+        payload,
+        max_bytes,
+        max_uncompressed_bytes,
+        max_zip_entries,
+        inspect_timeout_seconds,
+    )
     if checked["errors"]:
         raise AppError(422, "IMPORT_INVALID", "The workbook has blocking errors and was not applied.", {"errors": checked["errors"]})
     if not (job_folder(upload_dir, job_id) / DRAFT_NAME).is_file():
@@ -645,10 +687,10 @@ def _parse_time(value: str | None):
 
 
 def _safe_cell(value: str) -> str:
-    text = str(value or "")
-    if text.startswith(("=", "+", "-", "@")):
-        return "'" + text
-    return text
+    from app.services.export_files import excel_cell
+
+    cleaned = excel_cell(str(value or ""))
+    return cleaned if isinstance(cleaned, str) else str(cleaned)
 
 
 def _require_modify(enabled: bool) -> None:

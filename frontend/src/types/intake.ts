@@ -39,5 +39,7 @@ export interface PublicConfig {
   fewshot_symbols_enabled?: boolean;
   dark_theme_enabled?: boolean;
   flow_animation_enabled?: boolean;
-  batch_upload_enabled?: boolean;
+  access_required?: boolean;
+  public_demo_mode?: boolean;
+  max_pdf_pages?: number;
 }

@@ -6,8 +6,9 @@ origin from the environment when the process starts.
 """
 
 from pathlib import Path
+from typing import Self
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 HIGH_CONFIDENCE_MIN = 0.85
@@ -65,3 +66,57 @@ class Settings(BaseSettings):
     dark_theme_enabled: bool = False
     flow_animation_enabled: bool = False
     batch_upload_enabled: bool = False
+    # Upload and job limits. Defaults keep a local project usable.
+    max_pdf_pages: int = Field(default=40, ge=1)
+    job_timeout_seconds: int = Field(default=600, ge=1)
+    inspect_timeout_seconds: int = Field(default=30, ge=1)
+    zip_max_uncompressed_bytes: int = Field(default=200 * 1024 * 1024, ge=1)
+    zip_max_entries: int = Field(default=2000, ge=1)
+    upload_rate_limit: int = Field(default=30, ge=1)
+    heavy_rate_limit: int = Field(default=120, ge=1)
+    access_rate_limit: int = Field(default=8, ge=1)
+    upload_rate_window_seconds: int = Field(default=60, ge=1)
+    # Empty means local development has no gate. This value is never sent to the browser.
+    demo_access_code: str = ""
+    access_token_ttl_seconds: int = Field(default=12 * 60 * 60, ge=60)
+    # When true, uploads and Modify are refused and one synthetic project is seeded.
+    public_demo_mode: bool = False
+    demo_seed_process: bool = True
+    # Extra browser origins, comma-separated. FRONTEND_ORIGIN is always included.
+    cors_origins: str = ""
+    log_level: str = "INFO"
+    # False in the vector-only image. The Windows app stays true and reports a missing program.
+    ocr_in_build: bool = True
+    # Accepted so a host can store them. This build does not call a model with them.
+    llm_api_key: str = ""
+    llm_api_base: str = ""
+    llm_model: str = ""
+
+    @model_validator(mode="after")
+    def _required_settings(self) -> Self:
+        if not self.database_url.strip():
+            raise ValueError("DATABASE_URL is required")
+        if not self.upload_dir.strip():
+            raise ValueError("UPLOAD_DIR is required")
+        if not self.cache_dir.strip():
+            raise ValueError("CACHE_DIR is required")
+        if self.log_level.upper() not in {"DEBUG", "INFO", "WARNING", "ERROR"}:
+            raise ValueError("LOG_LEVEL must be DEBUG, INFO, WARNING, or ERROR")
+        origins = self.allowed_origins()
+        if not origins:
+            raise ValueError("At least one CORS origin is required")
+        if any(item == "*" for item in origins):
+            raise ValueError("CORS must list explicit origins and cannot be *")
+        for item in origins:
+            if not (item.startswith("http://") or item.startswith("https://")):
+                raise ValueError("Each CORS origin must start with http:// or https://")
+        return self
+
+    def allowed_origins(self) -> list[str]:
+        """Browser origins that may call the API. The list is never a wildcard."""
+        found: list[str] = []
+        for part in [self.frontend_origin, *self.cors_origins.split(",")]:
+            item = part.strip().rstrip("/")
+            if item and item not in found:
+                found.append(item)
+        return found
