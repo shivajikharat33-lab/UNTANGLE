@@ -25,6 +25,14 @@ export type {
   StageStatus,
 } from "./stages";
 export { STAGE_ORDER } from "./stages";
+export type {
+  IoIssue,
+  IoListResult,
+  IoRow,
+  IoSeverity,
+  IoSummary,
+  IoValidateRequest,
+} from "./ioList";
 export type { ErrorResponse } from "./errors";
 export type { HealthResponse } from "./health";
 export type {

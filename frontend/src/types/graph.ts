@@ -80,3 +80,39 @@ export interface DiagramGraph {
   edges: Edge[];
   groups: Group[];
 }
+
+export interface Pattern {
+  id: string;
+  type: string;
+  member_node_ids: string[];
+  confidence: { level: string; score: number; reason: string };
+  certainty: string;
+  evidence: { source: string; description: string }[];
+  needs_review: boolean;
+  review_reasons: string[];
+  role: string;
+  role_certainty: string;
+  member_roles: Record<string, string>;
+  header_ids: string[];
+  valve_ids: string[];
+  check_valve_ids: string[];
+  sensor_id: string;
+  controller_id: string;
+  final_element_id: string;
+  missing_parts: string[];
+}
+
+export interface GraphSummary {
+  nodes: number;
+  edges: number;
+  junctions: number;
+  terminals: number;
+  orphans: number;
+  dead_ends: number;
+  unattached_instruments: number;
+  disconnected_components: number;
+  duplicates: number;
+  unknown_direction: number;
+  needs_review: number;
+  crossings: number;
+}

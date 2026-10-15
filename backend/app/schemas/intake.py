@@ -51,3 +51,4 @@ class PublicConfig(BaseModel):
     """Values the browser needs before an upload. This is not the health check."""
 
     max_upload_mb: int = Field(ge=1)
+    modify_enabled: bool = True

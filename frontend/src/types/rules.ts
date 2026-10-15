@@ -4,3 +4,15 @@ export interface RuleResult {
   passed: boolean;
   message: string;
 }
+
+export interface Finding {
+  id: string;
+  rule_id: string;
+  category: string;
+  severity: "error" | "warning" | "info";
+  title: string;
+  message: string;
+  affected_ids: string[];
+  evidence: { source: string; description: string; page?: number | null }[];
+  review_action: string;
+}

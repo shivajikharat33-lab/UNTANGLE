@@ -6,7 +6,14 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { LandingPage } from "./pages/LandingPage";
 import { NewProjectPage } from "./pages/NewProjectPage";
 import { NotBuiltPage } from "./pages/NotBuiltPage";
+import { EditPage } from "./pages/EditPage";
+import { ExportPage } from "./pages/ExportPage";
+import { HistoryPage } from "./pages/HistoryPage";
+import { FindingsPage } from "./pages/FindingsPage";
+import { ReportsPage } from "./pages/ReportsPage";
+import { SketchPage } from "./pages/SketchPage";
 import { ProcessingPage } from "./pages/ProcessingPage";
+import { ResultsPage } from "./pages/ResultsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 
 const StageFixturePage = import.meta.env.DEV
@@ -22,6 +29,13 @@ export function App() {
           <Route index element={<DashboardPage />} />
           <Route path="new" element={<NewProjectPage />} />
           <Route path="projects/:id/processing" element={<ProcessingPage />} />
+          <Route path="projects/:id/findings" element={<FindingsPage />} />
+          <Route path="projects/:id/sketch" element={<SketchPage />} />
+          <Route path="projects/:id/results" element={<ResultsPage />} />
+          <Route path="projects/:id/reports" element={<ReportsPage />} />
+          <Route path="projects/:id/export" element={<ExportPage />} />
+          <Route path="projects/:id/edit" element={<EditPage />} />
+          <Route path="projects/:id/versions" element={<HistoryPage />} />
           {StageFixturePage ? (
             <Route
               path="dev/stages"
@@ -32,24 +46,8 @@ export function App() {
               }
             />
           ) : null}
-          <Route
-            path="results"
-            element={
-              <NotBuiltPage
-                title="Results"
-                description="The simplified sketch will appear here. There is no sketch to show."
-              />
-            }
-          />
-          <Route
-            path="reports"
-            element={
-              <NotBuiltPage
-                title="Reports"
-                description="The Tag Check Report and the Connection Report will be listed here. No report has been produced."
-              />
-            }
-          />
+          <Route path="results" element={<ResultsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
           <Route
             path="edit"
             element={
@@ -68,15 +66,7 @@ export function App() {
               />
             }
           />
-          <Route
-            path="export"
-            element={
-              <NotBuiltPage
-                title="Export"
-                description="SVG, PDF, PNG, JSON, and Excel downloads will be offered here. There is no file to download."
-              />
-            }
-          />
+          <Route path="export" element={<ExportPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>

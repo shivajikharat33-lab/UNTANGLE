@@ -34,4 +34,5 @@ export interface JobListItem {
 
 export interface PublicConfig {
   max_upload_mb: number;
+  modify_enabled?: boolean;
 }

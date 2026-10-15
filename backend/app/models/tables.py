@@ -63,5 +63,9 @@ class VersionRow(Base):
     svg: Mapped[str | None] = mapped_column(Text, nullable=True)
     verification: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     change_log: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[str] = mapped_column(String, nullable=False, default="")
+    created_by: Mapped[str] = mapped_column(String, nullable=False, default="")
+    note: Mapped[str] = mapped_column(String, nullable=False, default="")
+    accepted_at: Mapped[str | None] = mapped_column(String, nullable=True)
 
     job: Mapped[JobRow] = relationship(back_populates="versions")

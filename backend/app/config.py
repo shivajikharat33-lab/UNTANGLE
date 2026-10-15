@@ -48,3 +48,13 @@ class Settings(BaseSettings):
     upload_dir: str = str(DEFAULT_UPLOAD_DIR)
     max_upload_mb: int = Field(default=50, ge=1)
     frontend_origin: str = Field(default="http://127.0.0.1:5173", min_length=1)
+    tag_fuzzy_threshold: float = Field(default=0.80, ge=0.0, le=1.0)
+    process_min_stroke: float = Field(default=1.0, ge=0)
+    signal_max_stroke: float = Field(default=0.75, ge=0)
+    snap_tolerance: float = Field(default=4.0, ge=0)
+    # How close a pipe end must be to a symbol or junction before it is attached.
+    node_attach_tolerance: float = Field(default=8.0, ge=0)
+    # Derived JSON and SVG copies. This is not a temp directory and it is not the upload folder.
+    cache_dir: str = str(REPO_ROOT / "data" / "cache")
+    # When false, the edit API rejects changes and the website hides Modify.
+    modify_enabled: bool = True

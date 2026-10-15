@@ -25,21 +25,26 @@ Product rows use the same IDs as `FEATURES.md`.
 | SCRIPT-02 Excel tag problems | `scripts/excel_checks.py`, `scripts/inspect_excel.py` | `test_excel_reports_empty_and_duplicate_tags` |
 | SCRIPT-03 Answer-key template | `data/answer_keys/TEMPLATE.json` | `test_answer_key_template_matches_the_contract` |
 | API-04 Project upload and intake | `backend/app/api/jobs.py`, `backend/app/services/uploads.py` | `backend/tests/test_jobs.py` (`test_valid_upload_stores_safe_names_and_intake`, `test_corrupt_pdf_leaves_no_job`, `test_unknown_job_uses_the_standard_error`) |
+| API-05 IO list check | `backend/app/services/io_list.py`, `backend/app/api/jobs.py`, `frontend/src/components/IoListPanel.tsx` | `backend/tests/test_io_list.py` |
+| API-06 PDF read and process | `backend/app/services/pdf_extract.py`, `backend/app/services/pipeline.py`, `frontend/src/components/ExtractionPanel.tsx` | `backend/tests/test_extract.py` |
+| API-07 Tag Check Report | `backend/app/services/tag_match.py`, `frontend/src/components/TagReportPanel.tsx` | `backend/tests/test_tag_match.py` |
+| API-08 Raster read and detections | `backend/app/services/pdf_raster.py`, `backend/app/services/detect.py`, `frontend/src/components/DetectionsPanel.tsx` | `backend/tests/test_raster.py`, `backend/tests/test_detect.py` |
+| API-09 Line geometry | `backend/app/services/geometry.py`, `frontend/src/components/DetectionsPanel.tsx` | `backend/tests/test_geometry.py` |
 | T1-01 | `backend/app/api/jobs.py`, `frontend/src/pages/NewProjectPage.tsx` | `backend/tests/test_jobs.py` |
 | T1-02 | `backend/app/services/pdf_inspect.py` | `test_vector_pdf_is_vector`, `test_embedded_image_pdf_is_scanned`, `test_scanned_pdf_records_a_warning` |
-| T1-03 | TBD | TBD |
+| T1-03 | `backend/app/services/detect.py`, `backend/app/services/geometry.py`, `frontend/src/components/DetectionsPanel.tsx` | `test_symbols_follow_shape_and_label_rules`, `tests/test_geometry.py` |
 | T1-04 | TBD | TBD |
 | T1-05 | TBD | TBD |
 | T1-06 | TBD | TBD |
-| T1-07 | TBD | TBD |
+| T1-07 | `backend/app/services/tag_match.py`, `frontend/src/components/TagReportPanel.tsx` | `test_matches_exact_confusion_missing_and_extra`, `test_tag_report_endpoint_and_missing_io_list` |
 | T1-08 | TBD | TBD |
-| T2-01 | TBD | TBD |
-| T2-02 | TBD | TBD |
+| T2-01 | `backend/app/config.py`, `backend/app/services/tag_match.py` | `test_confidence_cutoffs_match_the_contract`, `test_matches_exact_confusion_missing_and_extra` |
+| T2-02 | `backend/app/services/tag_match.py` | `test_rapidfuzz_near_match_is_fuzzy_needs_review`, `test_ambiguous_double_match_is_not_chosen` |
 | T2-03 | TBD | TBD |
 | T2-04 | TBD | TBD |
 | T2-05 | TBD | TBD |
 | T2-06 | TBD | TBD |
-| T2-07 | TBD | TBD |
+| T2-07 | `backend/app/services/tag_match.py` | `test_rapidfuzz_near_match_is_fuzzy_needs_review`, `test_matches_exact_confusion_missing_and_extra` |
 | C1 | TBD | TBD |
 | C2 | TBD | TBD |
 | C3 | TBD | TBD |

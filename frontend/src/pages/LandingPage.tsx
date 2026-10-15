@@ -143,7 +143,7 @@ export function LandingPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-sm text-ink-soft">These downloads are not built yet. The list is the intended set, not a set of files you can save today.</p>
+          <p className="mt-4 text-sm text-ink-soft">After a project is processed, the Export page can download JSON, SVG, PNG, PDF, and Excel. A draft file is labeled draft and is not Verified.</p>
         </section>
 
         <section className="border-t border-line bg-paper-raised">

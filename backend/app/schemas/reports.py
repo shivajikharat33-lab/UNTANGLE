@@ -19,6 +19,24 @@ class TagReportRow(BaseModel):
     confidence: Confidence
     location: BBox | None = None
     suggestion: str | None = None
+    suffix_hint: str | None = None
+
+
+class TagReportSummary(BaseModel):
+    """Counts for one Tag Check Report. found + fuzzy + not_found equals total."""
+
+    total: int = Field(ge=0)
+    found: int = Field(ge=0)
+    fuzzy: int = Field(ge=0)
+    not_found: int = Field(ge=0)
+    extra: int = Field(ge=0)
+
+
+class TagReport(BaseModel):
+    """Every IO tag once, plus extra tag-like text from the drawing."""
+
+    rows: list[TagReportRow] = Field(default_factory=list)
+    summary: TagReportSummary
 
 
 class ConnectionReportRow(BaseModel):

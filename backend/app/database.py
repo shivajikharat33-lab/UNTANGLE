@@ -7,11 +7,21 @@ from sqlalchemy.orm import DeclarativeBase
 
 logger = logging.getLogger("untangle.database")
 
+_DROP_UPDATE_GUARD = "DROP TRIGGER IF EXISTS versions_reject_update_of_original"
 _UPDATE_GUARD = """
-CREATE TRIGGER IF NOT EXISTS versions_reject_update_of_original
+CREATE TRIGGER versions_reject_update_of_original
 BEFORE UPDATE ON versions
 FOR EACH ROW
-WHEN OLD.number = 0
+WHEN OLD.number = 0 AND (
+    NEW.id != OLD.id
+    OR NEW.job_id != OLD.job_id
+    OR NEW.number != OLD.number
+    OR IFNULL(NEW.parent, '') != IFNULL(OLD.parent, '')
+    OR NEW.connection_list_snapshot != OLD.connection_list_snapshot
+    OR IFNULL(NEW.svg, '') != IFNULL(OLD.svg, '')
+    OR IFNULL(CAST(NEW.verification AS TEXT), '') != IFNULL(CAST(OLD.verification AS TEXT), '')
+    OR NEW.change_log != OLD.change_log
+)
 BEGIN
     SELECT RAISE(ABORT, 'version 0 is the original and is never overwritten');
 END
@@ -60,8 +70,27 @@ def init_db(engine: Engine) -> None:
     Base.metadata.create_all(bind=engine)
     with engine.begin() as connection:
         _add_job_columns(connection)
+        connection.execute(text(_DROP_UPDATE_GUARD))
         connection.execute(text(_UPDATE_GUARD))
         connection.execute(text(_DELETE_GUARD))
+        _add_version_columns(connection)
+
+
+def _add_version_columns(connection) -> None:
+    """Add history columns without rebuilding the versions table."""
+    rows = connection.execute(text("PRAGMA table_info(versions)")).fetchall()
+    if not rows:
+        return
+    present = {row[1] for row in rows}
+    additions = (
+        ("created_at", "TEXT NOT NULL DEFAULT ''"),
+        ("created_by", "TEXT NOT NULL DEFAULT ''"),
+        ("note", "TEXT NOT NULL DEFAULT ''"),
+        ("accepted_at", "TEXT"),
+    )
+    for name, declaration in additions:
+        if name not in present:
+            connection.execute(text(f"ALTER TABLE versions ADD COLUMN {name} {declaration}"))
 
 
 def _add_job_columns(connection) -> None:

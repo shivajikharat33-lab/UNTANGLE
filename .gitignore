@@ -17,6 +17,7 @@ __pycache__/
 data/samples/*
 !data/samples/README.md
 data/uploads/
+data/cache/
 
 # Local database files created when the API is running
 *.db

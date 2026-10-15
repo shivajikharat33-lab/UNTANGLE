@@ -19,6 +19,11 @@ class VerificationResult(BaseModel):
     tags_total: int = Field(ge=0)
     rule_results: list[RuleResult] = Field(default_factory=list)
     verified: bool = False
+    tool_added: int = Field(default=0, ge=0)
+    tool_removed: int = Field(default=0, ge=0)
+    user_added: int = Field(default=0, ge=0)
+    user_removed: int = Field(default=0, ge=0)
+    user_reversed: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def verified_requires_every_check(self) -> "VerificationResult":

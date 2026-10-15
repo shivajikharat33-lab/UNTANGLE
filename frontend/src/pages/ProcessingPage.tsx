@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import { getJob } from "../api/jobs";
+import { getJob, processJob } from "../api/jobs";
 import { ApiError } from "../api/client";
 import { Alert } from "../components/Alert";
 import { Badge } from "../components/Badge";
@@ -9,7 +9,16 @@ import { Card } from "../components/Card";
 import { EmptyState } from "../components/EmptyState";
 import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
+import { DetectionsPanel } from "../components/DetectionsPanel";
+import { GraphSummaryPanel } from "../components/GraphSummaryPanel";
+import { CoveragePanel } from "../components/CoveragePanel";
+import { SimplifiedPanel } from "../components/SimplifiedPanel";
+import { FindingsPanel } from "../components/FindingsPanel";
+import { PatternsPanel } from "../components/PatternsPanel";
+import { ExtractionPanel } from "../components/ExtractionPanel";
+import { IoListPanel } from "../components/IoListPanel";
 import { StageList } from "../components/StageList";
+import { TagReportPanel } from "../components/TagReportPanel";
 import { buttonClass } from "../lib/buttonClass";
 import { POLL_INTERVAL_MS, shouldPoll } from "../lib/stagePresentation";
 import type { PdfVerdict } from "../types/intake";
@@ -37,6 +46,8 @@ export function ProcessingPage() {
   const [error, setError] = useState<ApiError | null>(null);
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
+  const [runError, setRunError] = useState<ApiError | null>(null);
+  const [runningRequest, setRunningRequest] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -72,7 +83,6 @@ export function ProcessingPage() {
     }
 
     setLoading(true);
-    setJob(null);
     setError(null);
     void load(id);
     return () => {
@@ -81,6 +91,28 @@ export function ProcessingPage() {
       controller.abort();
     };
   }, [id, attempt]);
+
+  useEffect(() => {
+    setJob(null);
+    setRunError(null);
+  }, [id]);
+
+  async function runExtraction() {
+    if (!id) {
+      return;
+    }
+    setRunningRequest(true);
+    setRunError(null);
+    try {
+      const next = await processJob(id);
+      setJob(next);
+      setAttempt((value) => value + 1);
+    } catch (caught) {
+      setRunError(caught instanceof ApiError ? caught : new ApiError("Extraction could not be started.", 0, null));
+    } finally {
+      setRunningRequest(false);
+    }
+  }
 
   const projectName = job?.name.trim() ?? "";
   const pageTitle = projectName
@@ -102,7 +134,7 @@ export function ProcessingPage() {
       <PageHeader
         eyebrow="Processing"
         title={pageTitle}
-        description="Intake is the only stage with a result. The other stages stay waiting until the processing engine exists."
+        description="Run extraction to build the graph and the sketch. Open the sketch when a stage has finished."
       />
 
       {loading && !job ? <Spinner label="Loading project" /> : null}
@@ -166,6 +198,24 @@ export function ProcessingPage() {
         </section>
       ) : null}
 
+      {job ? <IoListPanel jobId={job.id} /> : null}
+
+      {job ? <ExtractionPanel jobId={job.id} readStatus={job.stages.find((stage) => stage.name === "Read")?.status ?? "pending"} /> : null}
+
+      {job ? <TagReportPanel jobId={job.id} matchStatus={job.stages.find((stage) => stage.name === "MatchTags")?.status ?? "pending"} /> : null}
+
+      {job ? <DetectionsPanel jobId={job.id} detectStatus={job.stages.find((stage) => stage.name === "Detect")?.status ?? "pending"} /> : null}
+
+      {job ? <GraphSummaryPanel jobId={job.id} traceStatus={job.stages.find((stage) => stage.name === "Trace")?.status ?? "pending"} /> : null}
+
+      {job ? <PatternsPanel jobId={job.id} patternStatus={job.stages.find((stage) => stage.name === "Patterns")?.status ?? "pending"} /> : null}
+
+      {job ? <FindingsPanel jobId={job.id} checkStatus={job.stages.find((stage) => stage.name === "SelfCheck")?.status ?? "pending"} /> : null}
+
+      {job ? <CoveragePanel jobId={job.id} reportStatus={job.stages.find((stage) => stage.name === "Report")?.status ?? "pending"} /> : null}
+
+      {job ? <SimplifiedPanel jobId={job.id} simplifyStatus={job.stages.find((stage) => stage.name === "Simplify")?.status ?? "pending"} /> : null}
+
       <section>
         <h2 className="mb-3 font-display text-xl">Warnings</h2>
         {job && warnings.length === 0 ? (
@@ -186,15 +236,39 @@ export function ProcessingPage() {
       </section>
 
       <section className="flex flex-wrap items-center gap-3">
-        <Button disabled title="The processing engine arrives in a later phase.">
-          Not built yet
+        <Button
+          disabled={!job || job.stages.every((stage) => stage.name !== "Intake" || stage.status !== "done") || shouldPoll(job.stages) || runningRequest}
+          onClick={() => void runExtraction()}
+        >
+          Run extraction
         </Button>
-        <p className="text-sm text-ink-soft">Generate sketch is not built yet. The processing engine arrives in a later phase.</p>
+        <Button
+          variant="secondary"
+          disabled={!job || shouldPoll(job.stages) || runningRequest}
+          onClick={() => void processJob(job?.id ?? "", { retry: true }).then(() => setAttempt((value) => value + 1)).catch((caught: unknown) => setRunError(caught instanceof ApiError ? caught : new ApiError("Retry could not start.", 0, null)))}
+        >
+          Retry from the failed stage
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={!job || shouldPoll(job.stages) || runningRequest}
+          onClick={() => void processJob(job?.id ?? "", { force: true }).then(() => setAttempt((value) => value + 1)).catch((caught: unknown) => setRunError(caught instanceof ApiError ? caught : new ApiError("A full rerun could not start.", 0, null)))}
+        >
+          Force a full rerun
+        </Button>
+        {job ? <Link to={`/app/projects/${job.id}/sketch`} className={buttonClass("secondary")}>Open sketch</Link> : null}
+        {runError ? <p className="text-sm text-alert-error-fg">{runError.message}</p> : null}
       </section>
 
-      <section className="rounded-card border border-dashed border-line px-4 py-8 text-center">
-        <h2 className="font-display text-2xl">Early preview: not built yet</h2>
-        <p className="mt-2 text-sm text-ink-soft">There is no sketch to preview.</p>
+      <section className="rounded-card border border-line px-4 py-6">
+        <h2 className="font-display text-2xl">Sketch</h2>
+        <p className="mt-2 text-sm text-ink-soft">A draft appears after the graph is built and is labeled DRAFT, not final, not verified. The final sketch appears after layout. Results, reports, and exports use the stored files.</p>
+        {job ? (
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link to={`/app/projects/${job.id}/results`} className={buttonClass("secondary")}>Open results</Link>
+            <Link to={`/app/projects/${job.id}/reports`} className={buttonClass("ghost")}>Open reports</Link>
+          </div>
+        ) : null}
       </section>
 
       <Link to="/app" className={buttonClass("ghost")}>

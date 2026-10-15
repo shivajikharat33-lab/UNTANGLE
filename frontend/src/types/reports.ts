@@ -10,6 +10,20 @@ export interface TagReportRow {
   confidence: Confidence;
   location: BBox | null;
   suggestion: string | null;
+  suffix_hint?: string | null;
+}
+
+export interface TagReportSummary {
+  total: number;
+  found: number;
+  fuzzy: number;
+  not_found: number;
+  extra: number;
+}
+
+export interface TagReport {
+  rows: TagReportRow[];
+  summary: TagReportSummary;
 }
 
 export interface ConnectionReportRow {

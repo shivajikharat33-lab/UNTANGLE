@@ -36,10 +36,18 @@ class ConnectionSnapshotEntry(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    id: str = ""
     from_: str = Field(alias="from", min_length=1)
     to: str = Field(min_length=1)
     direction: Direction
-    line_type: LineType
+    line_type: LineType = "process"
+    color: str = ""
+    style: str = ""
+    group: str = ""
+    crossing_mode: Literal["auto", "avoid", "keep"] = "auto"
+    status: Literal["auto", "user_added", "user_edited", "user_removed"] = "auto"
+    confidence_score: float | None = None
+    notes: str = ""
 
 
 class Version(BaseModel):
@@ -53,6 +61,10 @@ class Version(BaseModel):
     svg: str | None = None
     verification: VerificationResult | None = None
     change_log: list[ChangeLogEntry] = Field(default_factory=list)
+    created_at: datetime | None = None
+    created_by: str = ""
+    note: str = ""
+    accepted_at: datetime | None = None
 
     @model_validator(mode="after")
     def version_zero_is_the_original(self) -> "Version":

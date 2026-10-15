@@ -37,8 +37,8 @@ Each pass records the ten stages below. A stage ends as `pending`, `running`, `d
 | Path | Role |
 | --- | --- |
 | `backend/app/schemas/` | The data contracts, as Pydantic models. |
-| `backend/app/api/` | HTTP routes. `GET /api/health` is the only route so far. |
-| `backend/app/services/` | The stage code. Empty until processing starts. |
+| `backend/app/api/` | HTTP routes for health, config, jobs, IO checking, extraction, and the tag report. |
+| `backend/app/services/` | Intake, IO checking, PDF reading, the process run, and tag matching. |
 | `backend/app/models/` | SQLite tables `jobs` and `versions`. |
 | `backend/app/config.py` | Confidence thresholds and environment settings. |
 | `backend/app/main.py` | The FastAPI app. CORS, request ids, and error handling live here. |
@@ -57,4 +57,8 @@ Each pass records the ten stages below. A stage ends as `pending`, `running`, `d
 
 The API serves `GET /api/health`, `GET /api/config`, and the job routes. A project can be created from a PDF and an xlsx file. Intake records the page count, the PDF verdict, and the Excel sheet summary, and marks that stage done. Version 0 is still not created at upload, because there is no sketch.
 
-There is still no symbol detection, tag matching, line tracing, simplified sketch, report, or export.
+Read stores `extraction.json`. A page with vector text or drawings stays on the vector reader. A page that is only an image is rendered at 300 DPI and read with OpenCV. OCR words are stored only when the Tesseract program is installed; otherwise that page is `ocr_unavailable` and no text is invented. Raster items use the same page coordinates as vector items and are marked `source: raster`.
+
+MatchTags stores `tag_report.json` after the IO list has been checked. Detect then stores `detections.json`. Line geometry stores `geometry.json` in the same run. It classifies strokes, snaps nearby endpoints, and records junctions, crossings, and ambiguous meetings. It does not build a graph and it does not decide flow.
+
+There is still no simplified sketch, connection report, or export. Matching, detection, and junction accuracy against an answer key have not been measured.

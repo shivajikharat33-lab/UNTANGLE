@@ -47,9 +47,10 @@ describe("stage rendering", () => {
   });
 
   it("labels a pending stage as waiting", () => {
-    const view = presentStage({ ...base, name: "Trace", status: "pending" });
+    const view = presentStage({ ...base, name: "Layout", status: "pending" });
     const html = renderToStaticMarkup(<ProgressSteps steps={[view]} />);
     expect(view.showSpinner).toBe(false);
-    expect(html).toContain("Waiting: processing engine not built yet");
+    expect(html).toContain("Waiting to run");
+    expect(html).toContain("Laying out the sketch");
   });
 });

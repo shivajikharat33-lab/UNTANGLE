@@ -2,7 +2,7 @@
 
 UNTANGLE is a web app that reads a customer P&ID PDF and an instrument IO list (Excel) and builds a simpler left-to-right control-room sketch.
 
-It also produces a Tag Check Report, a Connection Report, confidence and verification results, and downloads (SVG, PDF, PNG, JSON, Excel). Those product features are not built yet. The repository has the shared data contracts, `GET /api/health`, and project upload. Upload stores the two files, records an intake summary, and leaves every later stage pending.
+It also produces a Tag Check Report, a Connection Report, a coverage summary, a hidden-item ledger, and downloads (SVG, PDF, PNG, JSON, Excel). Upload stores the two original files and does not change them. Later stages write derived JSON and SVG beside those files. Edit, version history, and settings changes are not built yet.
 
 Decisions follow one order: exact file data first, then rules, then AI help. Uncertain items are flagged. They are not dropped, and a result is not marked verified unless every defined check passed.
 
@@ -33,8 +33,10 @@ cd untangle
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r backend\requirements.txt
-cd backend
-uvicorn app.main:app --reload
+cd tools\layout
+npm install
+cd ..\backend
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 ### macOS
@@ -44,8 +46,10 @@ cd untangle
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r backend/requirements.txt
-cd backend
-uvicorn app.main:app --reload
+cd tools/layout
+npm install
+cd ../../backend
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 The API listens on http://127.0.0.1:8000. Open http://127.0.0.1:8000/api/health to see the check. Copy `backend/.env.example` to `backend/.env` only when you want to override the defaults. Do not commit `.env`.
@@ -59,7 +63,7 @@ In a second terminal, from the repository root:
 ```powershell
 cd untangle\frontend
 npm install
-npm run dev
+npm run dev -- --host 127.0.0.1
 ```
 
 #### macOS

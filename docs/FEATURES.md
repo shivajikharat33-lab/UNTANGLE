@@ -2,7 +2,7 @@
 
 Status values: **Not started**, **In progress**, **Implemented**, **Tested**.
 
-Upload and the PDF type verdict are tested. The landing page, dashboard, new-project form, and processing page are in the website. Symbol detection, tracing, the sketch, reports, and exports are not built. A screen that is not built says so. Contract coverage is tracked in `TRACEABILITY.md`.
+Upload, the PDF type verdict, IO-list checking, vector extraction, the scanned-page raster fallback, the Tag Check Report, rule-based symbol detection, and line geometry are tested on synthetic drawings. The landing page, dashboard, new-project form, and processing page are in the website. The connection graph, flow direction, the sketch, the connection report, and exports are not built. A screen that is not built says so. Matching, detection, and junction accuracy against an answer key have not been measured. Contract coverage is tracked in `TRACEABILITY.md`.
 
 ## Tier 1
 
@@ -10,24 +10,24 @@ Upload and the PDF type verdict are tested. The landing page, dashboard, new-pro
 | --- | --- | --- |
 | T1-01 | Upload a customer P&ID PDF and an instrument IO list Excel file | Tested |
 | T1-02 | Detect whether a drawing is vector, scanned, or mixed | Tested |
-| T1-03 | Detect equipment and IO instruments and keep their tags | Not started |
+| T1-03 | Detect equipment and IO instruments and keep their tags | Tested |
 | T1-04 | Trace correct connections and flow direction | Not started |
 | T1-05 | Draw duty/standby equipment as parallel lines | Not started |
 | T1-06 | Lay the sketch out left to right, with minimal bends and no crossovers | Not started |
-| T1-07 | Tag Check Report | Not started |
+| T1-07 | Tag Check Report | Tested |
 | T1-08 | Export SVG, PDF, and PNG | Not started |
 
 ## Tier 2
 
 | ID | Feature | Status |
 | --- | --- | --- |
-| T2-01 | Confidence scores | Not started |
-| T2-02 | Needs Review flags | Not started |
+| T2-01 | Confidence scores | Tested |
+| T2-02 | Needs Review flags | Tested |
 | T2-03 | Rule-based self-check with re-trace | Not started |
 | T2-04 | Two-way click-to-trace side-by-side viewer | Not started |
 | T2-05 | Connection Report | Not started |
 | T2-06 | JSON export | Not started |
-| T2-07 | Fuzzy tag matching | Not started |
+| T2-07 | Fuzzy tag matching | Tested |
 | C1 | Speed-first path: caching, stage timings, and an early draft | Not started |
 | C2 | Completeness safeguards: coverage check, symbol census, hidden-items ledger, orphan and dead-end check, two-direction trace, recall metric | Not started |
 | C3 | Color-coded pipelines and a legend | Not started |

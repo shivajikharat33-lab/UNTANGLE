@@ -33,6 +33,27 @@ export function isErrorResponse(value: unknown): value is ErrorResponse {
   );
 }
 
+export async function apiSend(
+  path: string,
+  method: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<Response> {
+  try {
+    return await fetch(`${apiBaseUrl()}${path}`, {
+      method,
+      signal,
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw error;
+    }
+    throw new ApiError("The API is not reachable.", 0, null);
+  }
+}
+
 export async function apiFetch(path: string, signal?: AbortSignal): Promise<Response> {
   try {
     return await fetch(`${apiBaseUrl()}${path}`, {

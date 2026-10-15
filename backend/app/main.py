@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.errors import register_exception_handlers
 from app.api.health import router as health_router
+from app.api.edits import router as edits_router
 from app.api.jobs import router as jobs_router
 from app.api.middleware import RequestIdMiddleware
 from app.config import APP_VERSION, Settings
@@ -58,6 +59,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_exception_handlers(application)
     application.include_router(health_router)
     application.include_router(jobs_router)
+    application.include_router(edits_router)
     return application
 
 

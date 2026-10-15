@@ -9,3 +9,9 @@ pymupdf==1.28.2
 openpyxl==3.1.5
 pandas==3.0.6
 python-multipart==0.0.32
+rapidfuzz==3.14.5
+opencv-python-headless==4.13.0.92
+numpy==2.4.6
+pytesseract==0.3.13
+shapely==2.1.2
+reportlab==4.4.5

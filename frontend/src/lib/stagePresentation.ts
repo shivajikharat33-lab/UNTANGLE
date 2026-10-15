@@ -41,12 +41,23 @@ function joinWarnings(warnings: string[]): string {
   return warnings.map((warning) => warning.trim()).filter((warning) => warning.length > 0).join(" ");
 }
 
+const BUILT_STAGES = new Set(["Intake", "Read", "MatchTags", "Detect", "Trace", "Patterns", "SelfCheck", "Simplify", "Layout", "Report"]);
+
+const STAGE_LABELS: Partial<Record<StageRecord["name"], string>> = {
+  Trace: "Building graph",
+  Patterns: "Detecting patterns",
+  SelfCheck: "Running checks",
+  Simplify: "Simplifying graph",
+  Layout: "Laying out the sketch",
+  Report: "Computing coverage",
+};
+
 export function presentStage(stage: StageRecord, now = Date.now()): PresentedStage {
   const warnings = joinWarnings(stage.warnings);
   if (stage.status === "done") {
     return {
       id: stage.name,
-      label: stage.name,
+      label: STAGE_LABELS[stage.name] ?? stage.name,
       state: "done",
       note: warnings,
       durationLabel: stage.duration_ms === null ? null : formatDuration(stage.duration_ms),
@@ -56,7 +67,7 @@ export function presentStage(stage: StageRecord, now = Date.now()): PresentedSta
   if (stage.status === "running") {
     return {
       id: stage.name,
-      label: stage.name,
+      label: STAGE_LABELS[stage.name] ?? stage.name,
       state: "running",
       note: warnings,
       durationLabel: formatElapsed(stage.started_at, now),
@@ -66,7 +77,7 @@ export function presentStage(stage: StageRecord, now = Date.now()): PresentedSta
   if (stage.status === "failed") {
     return {
       id: stage.name,
-      label: stage.name,
+      label: STAGE_LABELS[stage.name] ?? stage.name,
       state: "failed",
       note: stage.error?.trim() || warnings || "This stage failed.",
       durationLabel: stage.duration_ms === null ? null : formatDuration(stage.duration_ms),
@@ -76,7 +87,7 @@ export function presentStage(stage: StageRecord, now = Date.now()): PresentedSta
   if (stage.status === "skipped") {
     return {
       id: stage.name,
-      label: stage.name,
+      label: STAGE_LABELS[stage.name] ?? stage.name,
       state: "skipped",
       note: warnings || "Skipped",
       durationLabel: null,
@@ -85,9 +96,9 @@ export function presentStage(stage: StageRecord, now = Date.now()): PresentedSta
   }
   return {
     id: stage.name,
-    label: stage.name,
+    label: STAGE_LABELS[stage.name] ?? stage.name,
     state: "pending",
-    note: warnings || "Waiting: processing engine not built yet",
+    note: warnings || (BUILT_STAGES.has(stage.name) ? "Waiting to run" : "Waiting: processing engine not built yet"),
     durationLabel: null,
     showSpinner: false,
   };
