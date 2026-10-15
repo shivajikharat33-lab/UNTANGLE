@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-10-15T15:47:40.604523+00:00",
+  "drawing_count": 1,
+  "rows": [
+    {
+      "drawing_id": "synthetic-eval",
+      "category": "sample",
+      "tags_matched": 2,
+      "tags_expected": 2,
+      "equipment_matched": 2,
+      "equipment_expected": 2,
+      "connections_matched": 1,
+      "connections_expected": 1,
+      "verification_difference": 1,
+      "limitations": "This table is one synthetic drawing. It is not a general accuracy or speed claim."
+    }
+  ]
+}

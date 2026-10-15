@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { acceptOriginal, getConfig, getExtraction, getGraph, getItem, getJob, getSketchMeta, getSketchText, getTrace, getVerification, listJobs, openDraft, pagePreviewUrl, type ItemDetail } from "../api/jobs";
 import { EditBanner } from "../components/EditBanner";
+import { SimulationBanner } from "../components/SimulationBanner";
 import { ApiError, apiFetch, apiSend } from "../api/client";
 import { SanityList } from "../components/SanityList";
 import { Alert } from "../components/Alert";
@@ -51,6 +52,7 @@ export function ResultsPage() {
   const [bannerError, setBannerError] = useState("");
   const [warnings, setWarnings] = useState<Array<{ id: string; rule: string; reason: string }>>([]);
   const [detailLevel, setDetailLevel] = useState(2);
+  const [simulation, setSimulation] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -252,6 +254,11 @@ export function ResultsPage() {
         ))}
       </div>
       <SanityList warnings={warnings} />
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={simulation} onChange={(event) => setSimulation(event.target.checked)} />
+        Simulation
+      </label>
+      <SimulationBanner on={simulation} />
       {bannerError ? <Alert tone="error" title={bannerError} /> : null}
       <EditBanner
         modifyEnabled={modifyEnabled}

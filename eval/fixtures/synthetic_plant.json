@@ -1,0 +1,49 @@
+{
+  "category": "sample",
+  "broken_user_removed": 1,
+  "answer_key": {
+    "drawing_id": "synthetic-eval",
+    "expected_tags": [{ "tag": "T-101" }, { "tag": "P-101A" }],
+    "expected_equipment": [{ "tag": "T-101" }, { "tag": "P-101A" }],
+    "expected_connections": [{ "from": "T-101", "to": "P-101A", "direction": "unknown" }]
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "tank",
+        "type": "equipment",
+        "tag": "T-101",
+        "label": "tank",
+        "signal": "",
+        "bbox": { "page": 1, "x": 0, "y": 0, "w": 10, "h": 10 },
+        "kept": true,
+        "detail_level": 2,
+        "confidence": { "level": "high", "score": 0.9, "reason": "fixture" },
+        "reason": ""
+      },
+      {
+        "id": "pump",
+        "type": "equipment",
+        "tag": "P-101A",
+        "label": "pump",
+        "signal": "",
+        "bbox": { "page": 1, "x": 40, "y": 0, "w": 10, "h": 10 },
+        "kept": true,
+        "detail_level": 2,
+        "confidence": { "level": "high", "score": 0.9, "reason": "fixture" },
+        "reason": ""
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "from_id": "tank",
+        "to_id": "pump",
+        "direction": "unknown",
+        "line_type": "process",
+        "confidence": { "level": "medium", "score": 0.8, "reason": "fixture" },
+        "evidence": []
+      }
+    ]
+  }
+}

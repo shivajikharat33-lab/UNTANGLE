@@ -8,6 +8,8 @@ from app.schemas.job import Version
 from app.services import edits
 from app.services.detail_view import render_detail
 from app.services.graph_build import load_graph
+from app.services.ask_graph import ask_graph
+from app.services.job_compare import compare_jobs
 from app.services.sanity import sanity_warnings
 
 router = APIRouter()
@@ -18,6 +20,22 @@ def _engine(request: Request):
     if engine is None:
         raise AppError(503, "DATABASE_UNAVAILABLE", "The database is not available.")
     return engine
+
+
+@router.get("/api/jobs/{job_id}/compare/{other_id}")
+def get_job_compare(job_id: str, other_id: str, request: Request) -> dict:
+    """Compare two projects. Neither graph is written or merged."""
+    settings = request.app.state.settings
+    return compare_jobs(load_graph(settings.upload_dir, job_id), load_graph(settings.upload_dir, other_id))
+
+
+@router.get("/api/jobs/{job_id}/ask")
+def get_ask(job_id: str, request: Request, question: str = "") -> dict:
+    """Answer from the extracted graph. The default mode does not call a model."""
+    settings = request.app.state.settings
+    if settings.ask_graph_llm_enabled:
+        return {"answer": "The optional model switch is on, but no model is configured. The graph was not changed.", "cited_ids": [], "highlight": []}
+    return ask_graph(load_graph(settings.upload_dir, job_id), question)
 
 
 @router.get("/api/jobs/{job_id}/sanity")

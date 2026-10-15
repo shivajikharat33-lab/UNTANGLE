@@ -1,5 +1,4 @@
 import { apiBaseUrl } from "../api/client";
-import { Alert } from "../components/Alert";
 import { Card } from "../components/Card";
 import { PageHeader } from "../components/PageHeader";
 import { Spinner } from "../components/Spinner";
@@ -14,11 +13,8 @@ export function SettingsPage() {
       <PageHeader
         eyebrow="Configuration"
         title="Settings"
-        description="The values below are the ones this browser is actually using. There is no form here yet, so nothing is saved from this page."
+        description="These values are read from the running API and this browser. Changing the API address still happens in the env file, not in a saved form."
       />
-      <Alert tone="info" title="Not built yet">
-        Changing the API address, upload limit, or theme from this screen is not built yet.
-      </Alert>
       <div className="mt-6 grid gap-4">
         <Card title="API address">
           <p className="font-mono text-sm text-ink">{apiBaseUrl()}</p>
@@ -42,8 +38,7 @@ export function SettingsPage() {
         </Card>
         <Card title="Confidence cutoffs">
           <p className="text-sm leading-6 text-ink-soft">
-            High starts at {HIGH_CONFIDENCE_MIN}. Medium starts at {MEDIUM_CONFIDENCE_MIN}. These match the backend
-            config. Scores are not being calculated yet.
+            High starts at {HIGH_CONFIDENCE_MIN}. Medium starts at {MEDIUM_CONFIDENCE_MIN}. Ask-the-graph models are off unless ASK_GRAPH_LLM_ENABLED is set. Few-shot symbol suggestions are off unless FEWSHOT_SYMBOLS_ENABLED is set. Simulation is not exported.
           </p>
         </Card>
       </div>

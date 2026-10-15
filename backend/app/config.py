@@ -58,3 +58,6 @@ class Settings(BaseSettings):
     cache_dir: str = str(REPO_ROOT / "data" / "cache")
     # When false, the edit API rejects changes and the website hides Modify.
     modify_enabled: bool = True
+    # Ask the graph stays on stored facts unless this is turned on. It is off by default.
+    ask_graph_llm_enabled: bool = False
+    fewshot_symbols_enabled: bool = False
