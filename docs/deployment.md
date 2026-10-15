@@ -1,21 +1,23 @@
 # Deploy UNTANGLE
 
-This file is a manual checklist. Nothing in this repository has been deployed. There is no public URL yet. Items that need a live site are marked **pending manual verification**.
+This file is a manual checklist. The website is already live on Vercel. The FastAPI API on Render is **pending** until a real `*.onrender.com` URL exists and is verified. Do not treat a Cloudflare tunnel (`trycloudflare.com`) as the permanent API. The public site must not depend on anyone's local PC.
 
-Checked against host docs on 15 October 2026. This machine cannot open the Vercel or Render dashboards.
+Checked against host docs on 15 October 2026. This machine may not be logged into the Render dashboard and may have no `RENDER_API_KEY`.
 
 The website is the Vite app in `frontend/`. The API is the FastAPI app in `backend/`. Layout for the sketch calls `node` on `tools/layout/elk_layout.mjs` (elkjs). Print PDFs use ReportLab. This app does not use Graphviz `dot`. `backend/requirements.txt` does not install CairoSVG, and the Render service must not be built as if a Windows `libcairo` DLL were present.
 
-`data/samples/` and `data/uploads/` stay gitignored. Do not commit customer P&IDs, IO lists, `backend/.env`, `frontend/.env`, or any secret. The public demo uses a synthetic drawing created in memory when the API starts. Do not upload a real drawing to the public site.
+`data/samples/` and `data/uploads/` stay gitignored. Do not commit customer P&IDs, IO lists, `backend/.env`, `frontend/.env`, or any secret. Do not upload a confidential customer drawing to the public free service.
 
 ## Where each host fits
 
 | Piece | Host | Why |
 | --- | --- | --- |
-| React site | Vercel | Static Vite build. The browser then calls the API. |
+| React site | Vercel (`https://untangle-coral.vercel.app`) | Static Vite build. The browser then calls the API. |
 | FastAPI API | Render web service | Python process, SQLite file, upload folder. |
 
-The database stays SQLite. This setup does not add Postgres, Redis, Celery, or Kubernetes.
+## Database: SQLite only (no MongoDB)
+
+UNTANGLE stores jobs and versions in **SQLite**. There is no MongoDB driver, no MongoDB connection string, and no MongoDB step in this deploy. Do not add MongoDB. Free Render Postgres is also unused. On the free Render plan the SQLite file and upload folder sit on an **ephemeral** disk: a restart, redeploy, or spin-down deletes them.
 
 ## What the docs confirmed on 15 October 2026
 
@@ -46,17 +48,13 @@ Sources: [Free](https://render.com/docs/free), [Disks](https://render.com/docs/d
 
 SQLite and the upload folder live on the service disk. On the free plan that disk is wiped when the service redeploys, restarts, or spins down.
 
-The option prepared in this repo is seed-on-start, which is already in the API:
+`render.yaml` leaves uploads on (`PUBLIC_DEMO_MODE=false`) so a visitor can send a PDF and an Excel IO list. The API does not seed a synthetic project in that mode.
 
-- `PUBLIC_DEMO_MODE=true` refuses uploads and turns Modify off.
-- On startup the API creates one synthetic project if the database is empty (`backend/app/services/demo_seed.py`). The PDF and workbook are drawn in memory. Customer files are not read.
-- `DEMO_SEED_PROCESS=true` runs that project through the pipeline, which needs Node and the elkjs package installed by the build command.
-
-User uploads are not durable on a free instance. The public demo is not a place to store a drawing.
+User uploads are not durable on a free instance. A restart, redeploy, or spin-down deletes the SQLite file and the upload folder. Do not put a confidential customer drawing on this public free service.
 
 Cost trade-off, from the prices above, if you later want files to survive a restart:
 
-- Stay on Free: $0, 512 MB, synthetic demo only, data disappears on spin-down. This is what `render.yaml` selects.
+- Stay on Free: $0, 512 MB, uploads work until the next restart, then the files disappear. This is what `render.yaml` selects.
 - A paid compute plan can mount a persistent disk at `/var/data` ($0.25 per GB per month, plus the instance price). Point `DATABASE_URL`, `UPLOAD_DIR`, and `CACHE_DIR` at that mount. The database would still be SQLite. The smallest paid web plan on the pricing page is 512 MB at $7/month, which may still be tight for OpenCV, pandas, and a processing job. The 2 GB plan is listed at $25/month. Adding a disk also disables zero-downtime deploys. Do not add a `disk` block while `plan` is `free`. Render will reject it.
 
 Free Render Postgres is a different product (it expires 30 days after creation). This app does not use it.
@@ -79,9 +77,9 @@ Environment variable, set for Production before the first production build:
 
 | Name | Example (not a secret) |
 | --- | --- |
-| `VITE_API_URL` | `https://untangle-api.onrender.com` |
+| `VITE_API_URL` | `https://YOUR-SERVICE.onrender.com` (real Render origin after deploy) |
 
-Vite copies `VITE_API_URL` into the browser bundle at build time. Changing it later requires a new Vercel deployment. Do not put API keys in any `VITE_` variable.
+Vite copies `VITE_API_URL` into the browser bundle at build time. Changing it later requires a new Vercel deployment. Do not put API keys or secrets in any `VITE_` variable. The frontend only needs this public API origin.
 
 `frontend/src/api/client.ts` already reads it:
 
@@ -114,7 +112,7 @@ Health routes that already exist:
 | `GET /health` | Liveness only. HTTP 200 and `{"status":"ok"}`. It does not check SQLite. |
 | `GET /ready` and `GET /api/ready` | HTTP 200 `ready` only when SQLite answers and the upload and cache folders are writable. Otherwise HTTP 503. |
 
-Render is pointed at `/api/health` so the same check the UI uses can answer within the 5 second probe. A seed that runs inside startup must finish before the process listens. If that work exceeds the 15 minute deploy limit, set `DEMO_SEED_PROCESS` to `false` in the dashboard and redeploy. A later blueprint sync sets that variable back to `true`, because it is a fixed value in `render.yaml`.
+Render is pointed at `/api/health` so the same check the UI uses can answer within the 5 second probe. `render.yaml` already sets `DEMO_SEED_PROCESS=false` and `PUBLIC_DEMO_MODE=false` so startup does not run a heavy seed.
 
 ## Environment variables
 
@@ -124,25 +122,25 @@ No secret values belong in git. Examples below are placeholders.
 
 | Name | Example |
 | --- | --- |
-| `VITE_API_URL` | `https://untangle-api.onrender.com` |
+| `VITE_API_URL` | `https://YOUR-SERVICE.onrender.com` |
 
 ### Render
 
 | Name | Example for the free synthetic demo | Notes |
 | --- | --- | --- |
 | `PYTHON_VERSION` | `3.14.3` | Set in `render.yaml`. |
-| `PUBLIC_DEMO_MODE` | `true` | Seeds a synthetic project and refuses uploads. Local `.env.example` keeps this `false`. |
-| `DEMO_SEED_PROCESS` | `true` | Set `false` only if startup processing is too heavy. |
+| `PUBLIC_DEMO_MODE` | `false` | `true` refuses uploads. Leave `false` so a visitor can upload a PDF and an Excel file. |
+| `DEMO_SEED_PROCESS` | `false` | Only used when public demo mode is on. |
 | `OCR_IN_BUILD` | `false` | Tesseract is not part of this Render build. Vector pages still work. The synthetic demo is vector text. |
 | `DATABASE_URL` | `sqlite:////opt/render/project/src/data/untangle.db` | Ephemeral on Free. |
 | `UPLOAD_DIR` | `/opt/render/project/src/data/uploads` | Ephemeral on Free. |
 | `CACHE_DIR` | `/opt/render/project/src/data/cache` | Ephemeral on Free. |
 | `MAX_UPLOAD_MB` | `50` | Uploads are refused while public demo mode is on. |
 | `CORS_ORIGINS` | `http://127.0.0.1:5173` | Extra origins, comma-separated. Never `*`. |
-| `FRONTEND_ORIGIN` | `https://your-app.vercel.app` | Exact Vercel origin. `https`, no path, no trailing slash. Typed in the dashboard (`sync: false`). |
+| `FRONTEND_ORIGIN` | `https://untangle-coral.vercel.app` | Exact Vercel origin. `https`, no path, no trailing slash. Set in `render.yaml`. |
 | `DEMO_ACCESS_CODE` | leave empty | Optional. If set, the site asks for it. Do not commit the code. |
 
-Other names already in `backend/.env.example` (`MAX_PDF_PAGES`, rate limits, `MODIFY_ENABLED`, `ASK_GRAPH_LLM_ENABLED`, `FEWSHOT_SYMBOLS_ENABLED`, `DARK_THEME_ENABLED`, `FLOW_ANIMATION_ENABLED`, `BATCH_UPLOAD_ENABLED`, `LLM_API_KEY`, `LLM_API_BASE`, `LLM_MODEL`, stroke and snap thresholds) keep their defaults when unset. `LLM_API_KEY` is not required. This build does not call a model with it. Leave it unset on the public demo.
+Uploads (PDF + Excel), analysis/processing, and exports use the same Render process and the env vars above. No extra secret is required for those paths on the public demo. Other names already in `backend/.env.example` (`MAX_PDF_PAGES`, rate limits, `MODIFY_ENABLED`, `ASK_GRAPH_LLM_ENABLED`, `FEWSHOT_SYMBOLS_ENABLED`, `DARK_THEME_ENABLED`, `FLOW_ANIMATION_ENABLED`, `BATCH_UPLOAD_ENABLED`, `LLM_API_KEY`, `LLM_API_BASE`, `LLM_MODEL`, stroke and snap thresholds) keep their defaults when unset. `LLM_API_KEY` is not required. This build does not call a model with it. Leave it unset on the public demo.
 
 Local development: copy the example files to `.env` only when you want to override defaults. With the variables unset, the API allows `http://127.0.0.1:5173` and the site calls `http://127.0.0.1:8000`.
 
@@ -157,23 +155,31 @@ disk:
 
 Then set `DATABASE_URL` to `sqlite:////var/data/untangle.db`, `UPLOAD_DIR` to `/var/data/uploads`, and `CACHE_DIR` to `/var/data/cache`. Turn `PUBLIC_DEMO_MODE` off only if you accept that those files are still a single disk on one instance, and still do not upload customer drawings to a demo you do not control. `sizeGB` is shown as optional in the blueprint example. The default size number is **unconfirmed** here, so the example uses 1 GB, which matches the published $0.25 per GB price for one gigabyte.
 
-## Manual checklist
+## Manual checklist (Render API + reconnect Vercel)
 
-Do this yourself. This session did not commit, push, or open the dashboards.
+GitHub repo: `https://github.com/shivajikharat33-lab/UNTANGLE` (branch `main`). Website already: `https://untangle-coral.vercel.app`.
 
-1. On GitHub, create an empty repository. Do not add a generated README, license, or `.gitignore` on GitHub if this project already has them.
-2. In PowerShell, from `C:\Users\Admin\untangle`, run `git status`. Confirm these are not staged: `data/samples` drawings, `data/uploads`, `data/cache`, any `*.db`, `backend/.env`, and `frontend/.env`. The samples README is the only samples file that should be committed.
-3. Commit the deploy files when you are ready (`frontend/vercel.json`, `render.yaml`, `docs/deployment.md`, the `.env.example` comment updates, and the README pointer). This agent did not commit.
-4. Add the GitHub remote if you do not already have one, then push. Example: `git remote add origin https://github.com/YOUR_ACCOUNT/untangle.git` then `git push -u origin HEAD`. **pending manual verification** that the GitHub repo exists and the push succeeded.
-5. In Render: New, Blueprint. Connect the GitHub repo. Blueprint path: `render.yaml` at the repo root. When prompted, set `FRONTEND_ORIGIN` to `http://127.0.0.1:5173` if you do not have the Vercel URL yet. Do not leave it blank. Leave `DEMO_ACCESS_CODE` empty. Confirm the plan shown is Free, not `0.5c-512mb`. Apply the blueprint. **pending manual verification**.
-6. Wait until the Render deploy is live. Open `https://YOUR-SERVICE.onrender.com/api/health`. You want HTTP 200 and `"database":"ok"`. The first request after a spin-down can take about a minute. **pending manual verification**.
-7. Copy the `https://….onrender.com` origin with no trailing slash.
-8. In Vercel: Add New, Project, import the same GitHub repo. Set Root Directory to `frontend`. Framework Vite. Build command `npm run build`. Output directory `dist`. Add `VITE_API_URL` with the Render origin from step 7. Deploy. **pending manual verification**.
-9. Copy the Vercel origin, for example `https://your-app.vercel.app`, with no path and no trailing slash.
-10. In the Render dashboard, Environment, set `FRONTEND_ORIGIN` to that Vercel origin. Keep `CORS_ORIGINS` as `http://127.0.0.1:5173`. Save and deploy. A later blueprint sync does not overwrite `FRONTEND_ORIGIN` (`sync: false`). It does reset `CORS_ORIGINS` to the value in `render.yaml`. **pending manual verification**.
-11. If you change `VITE_API_URL` after a Vercel build, redeploy Vercel. The old bundle keeps the old URL.
+1. Confirm `render.yaml` and `docs/deployment.md` are on `origin/main`. Do not commit `backend/.env`, `frontend/.env`, `data/uploads`, `*.db`, or `tools/cloudflared.exe`.
+2. Open [Render Dashboard](https://dashboard.render.com/) and sign in (GitHub login is fine).
+3. **New** → **Blueprint** → connect `shivajikharat33-lab/UNTANGLE`. Blueprint path: `render.yaml` at the repo root. Confirm plan **Free**. Leave `DEMO_ACCESS_CODE` empty when prompted. Apply.
+4. Or create a **Web Service** by hand: connect the same repo, **Root Directory** blank (repository root), Runtime Python, plan Free, build/start/health as in the table above, copy env vars from `render.yaml`, set `FRONTEND_ORIGIN=https://untangle-coral.vercel.app`.
+5. Wait until the deploy is Live. Open Logs if the build fails. First cold start after spin-down can take about a minute.
+6. Copy the service URL (`https://….onrender.com`, no trailing slash). Verify:
 
-Creating the services by hand uses the same root, build, start, health path, and variable names as the tables above. Do not set the API URL to `http://127.0.0.1:8000` on Vercel.
+```powershell
+curl.exe -sS https://YOUR-SERVICE.onrender.com/api/health
+```
+
+You want HTTP 200 with `"status":"ok"` and `"database":"ok"`. **pending** until that response is real.
+
+7. Reconnect the frontend (Vercel team `spa-i-nsight`, project `untangle`):
+   - Settings → Environment Variables → set Production `VITE_API_URL` to that Render origin (replace any old `trycloudflare` URL).
+   - Redeploy Production so the browser bundle picks up the new value.
+8. Open `https://untangle-coral.vercel.app/app`. Health should show Connected / online with database `ok`. Do not point Vercel at `http://127.0.0.1:8000` or at a temporary tunnel.
+
+### How to read Render logs
+
+Dashboard → service `untangle-api` → **Logs**. Build failures show during deploy; runtime errors show after Live. Use **Events** for deploy history.
 
 ## How to test the public site
 
@@ -194,7 +200,7 @@ In the browser, after steps 8 and 10. **pending manual verification**:
 2. Open `https://YOUR-APP.vercel.app/app`. The dashboard should load, not a Vercel 404.
 3. Open `https://YOUR-APP.vercel.app/app/settings`. The API address should be the Render `https` origin, not `http://127.0.0.1:8000`. Health should show online and database `ok`.
 4. Open `https://YOUR-APP.vercel.app/app/edit` and `https://YOUR-APP.vercel.app/app/versions`. Those routes are the Edit and History pages. They should not be a "not built" page.
-5. The dashboard should show the synthetic demo project after seed. Uploading a file should be refused while public demo mode is on. Do not upload a customer P&ID or IO list.
+5. Open New project and upload a non-confidential PDF plus an `.xlsx` IO list. Processing can take a few minutes. The first request after spin-down can take about a minute before the upload starts. Do not upload a customer P&ID or IO list.
 6. If you left `DEMO_ACCESS_CODE` empty, the site should not ask for a code. If you set one, enter it in the gate. The code stays in the Render dashboard only.
 
 Local check, unchanged, on your machine: site `http://127.0.0.1:5173`, API `http://127.0.0.1:8000/api/health`. This deploy prep did not start or stop those processes.
@@ -204,5 +210,5 @@ Local check, unchanged, on your machine: site `http://127.0.0.1:5173`, API `http
 1. **The public site still calls `http://127.0.0.1:8000`.** `VITE_API_URL` was missing at build time, or it was blank. Set it on Vercel to the Render `https` origin and redeploy. Local dev can keep the variable unset.
 2. **The browser console says the request was blocked by CORS.** `FRONTEND_ORIGIN` is not the exact Vercel origin (scheme, host, no path, no trailing slash), or a preview URL was never added. Set `FRONTEND_ORIGIN` to the production origin and put any extra origins in `CORS_ORIGINS`, comma-separated, including `http://127.0.0.1:5173`. Never use `*`. The API rejects `*` because the browser sends credentials.
 3. **Render never goes live, or the health check fails.** The start command must be `uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT`. The health path must be `/api/health`. Binding to `127.0.0.1` or port `8000` fails on Render. A blank `FRONTEND_ORIGIN` also stops startup, because an origin is required.
-4. **The project you created is gone after a while, or the first click sits on a loading page.** That is the free instance. The disk is ephemeral, and the service spins down after 15 minutes. The synthetic project is created again on the next boot if the database is empty and `PUBLIC_DEMO_MODE` is true. Uploads are not kept. A persistent disk requires a paid compute plan. See the cost trade-off above.
+4. **The project you created is gone after a while, or the first click sits on a loading page.** That is the free instance. The disk is ephemeral, and the service spins down after 15 minutes. Uploads are not kept. A persistent disk requires a paid compute plan. See the cost trade-off above.
 5. **The build fails, or the API is up but the synthetic project never appears.** Read the Render logs. `npm ci --prefix tools/layout` must succeed or elkjs layout cannot run. If pip fails on Python `3.14.3`, set `PYTHON_VERSION` to a fully qualified release Render accepts (this PC uses `3.14.6`; that patch on Render is unconfirmed). If the log shows the process was killed, the free 512 MB plan ran out of memory during install or during demo processing. Set `DEMO_SEED_PROCESS` to `false`, or move the service to a larger plan you choose to pay for. Do not install libcairo or Graphviz to fix that. OCR stays off (`OCR_IN_BUILD=false`) because the Tesseract program is not in this image. A seed error is logged and the API can still answer `/api/health`.

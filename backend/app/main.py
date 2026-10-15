@@ -7,6 +7,7 @@ Run from the backend directory:
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,7 +21,7 @@ from app.api.jobs import router as jobs_router
 from app.api.middleware import RequestIdMiddleware
 from app.api.probes import router as probes_router
 from app.config import APP_VERSION, Settings
-from app.database import init_db, make_engine
+from app.database import ensure_sqlite_parent, init_db, make_engine
 from app.http_guards import GuardMiddleware, SecurityHeadersMiddleware
 from app.logging_config import configure_logging
 from app.rate_limit import RateLimiter
@@ -29,11 +30,22 @@ from app.services.pdf_raster import set_ocr_in_build
 logger = logging.getLogger("untangle")
 
 
+def _ensure_storage(settings: Settings) -> None:
+    """Create upload/cache folders and the SQLite parent so Render can write on first boot."""
+    Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+    Path(settings.cache_dir).mkdir(parents=True, exist_ok=True)
+    ensure_sqlite_parent(settings.database_url)
+
+
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     """Create the tables when the database can be opened. Keep serving either way."""
     engine = application.state.engine
     settings = application.state.settings
+    try:
+        _ensure_storage(settings)
+    except Exception:
+        logger.exception("storage folders could not be created")
     if engine is not None:
         try:
             init_db(engine)
@@ -56,11 +68,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings()
     configure_logging(settings.log_level)
     set_ocr_in_build(settings.ocr_in_build)
+    try:
+        _ensure_storage(settings)
+    except Exception:
+        logger.exception("storage folders could not be created before the engine opens")
     application = FastAPI(title="UNTANGLE", version=APP_VERSION, lifespan=lifespan)
     application.state.settings = settings
     application.state.access_tokens = AccessRegistry()
     application.state.rate_limiter = RateLimiter()
     try:
+        ensure_sqlite_parent(settings.database_url)
         application.state.engine = make_engine(settings.database_url)
     except Exception:
         logger.exception("database engine could not be created")

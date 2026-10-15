@@ -1,11 +1,25 @@
 """SQLite engine, table creation, and a real connectivity check."""
 
 import logging
+from pathlib import Path
 
 from sqlalchemy import Engine, create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase
 
 logger = logging.getLogger("untangle.database")
+
+
+def ensure_sqlite_parent(database_url: str) -> None:
+    """Create the folder that holds the SQLite file so the first open can succeed."""
+    if not database_url.startswith("sqlite"):
+        return
+    # sqlite:///relative.db  or  sqlite:////absolute/path.db
+    raw = database_url.removeprefix("sqlite:///")
+    if not raw or raw == ":memory:" or raw.startswith("file:"):
+        return
+    path = Path(raw)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
 
 _DROP_UPDATE_GUARD = "DROP TRIGGER IF EXISTS versions_reject_update_of_original"
 _UPDATE_GUARD = """

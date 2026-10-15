@@ -125,7 +125,8 @@ def test_unexpected_error_uses_the_error_schema(tmp_path: Path) -> None:
     assert parsed.request_id == response.headers["X-Request-ID"]
 
 
-def test_broken_database_url_reports_failed_without_crashing(tmp_path: Path) -> None:
+def test_missing_sqlite_parent_is_created_so_health_can_pass(tmp_path: Path) -> None:
+    """Render paths under /opt/.../data must be created on first boot."""
     missing = tmp_path / "missing-folder" / "untangle.db"
     application = create_app(
         settings_for(tmp_path, database_url="sqlite:///" + missing.as_posix())
@@ -136,8 +137,20 @@ def test_broken_database_url_reports_failed_without_crashing(tmp_path: Path) -> 
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
+    assert body["database"] == "ok"
+    assert missing.parent.is_dir()
+
+
+def test_missing_engine_reports_database_failed_without_crashing(tmp_path: Path) -> None:
+    application = create_app(settings_for(tmp_path))
+    application.state.engine = None
+    with TestClient(application) as client:
+        response = client.get("/api/health")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
     assert body["database"] == "failed"
-    assert missing.exists() is False
 
 
 def test_version_zero_is_never_overwritten(tmp_path: Path) -> None:

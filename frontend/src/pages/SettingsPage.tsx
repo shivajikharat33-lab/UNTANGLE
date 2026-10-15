@@ -53,7 +53,9 @@ export function SettingsPage() {
       <div className="mt-6 grid gap-4">
         <Card title="API address">
           <p className="font-mono text-sm text-ink">{apiBaseUrl()}</p>
-          <p className="mt-2 text-sm text-ink-soft">Set VITE_API_URL in frontend/.env. The example file uses http://127.0.0.1:8000.</p>
+          <p className="mt-2 text-sm text-ink-soft">
+            Local: set VITE_API_URL in frontend/.env (example uses http://127.0.0.1:8000). Production: set VITE_API_URL in the Vercel project to the Render HTTPS origin, then redeploy.
+          </p>
         </Card>
         <Card title="Live health">
           {state.phase === "loading" ? <Spinner label="Checking the API" /> : null}

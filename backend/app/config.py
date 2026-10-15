@@ -113,10 +113,21 @@ class Settings(BaseSettings):
         return self
 
     def allowed_origins(self) -> list[str]:
-        """Browser origins that may call the API. The list is never a wildcard."""
+        """Browser origins that may call the API. The list is never a wildcard.
+
+        When the configured origin is 127.0.0.1 or localhost, the other form is
+        also allowed so a browser opened on either host can reach the API.
+        """
         found: list[str] = []
         for part in [self.frontend_origin, *self.cors_origins.split(",")]:
             item = part.strip().rstrip("/")
             if item and item not in found:
                 found.append(item)
+            companion = ""
+            if "://127.0.0.1" in item:
+                companion = item.replace("://127.0.0.1", "://localhost", 1)
+            elif "://localhost" in item:
+                companion = item.replace("://localhost", "://127.0.0.1", 1)
+            if companion and companion not in found:
+                found.append(companion)
         return found
